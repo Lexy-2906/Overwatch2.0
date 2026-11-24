@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Chroniques du Multivers (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.85);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .fail-frame {
+            border-color: #ff0033 !important;
+            box-shadow: 0 0 25px rgba(255, 0, 51, 0.35), inset 0 0 15px rgba(255, 0, 51, 0.15);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px #00f5ff;
+            transform: scale(1.02);
+        }
+
+        .choice-btn {
+            background: rgba(0, 30, 10, 0.9);
+            border: 1px solid #00ff66;
+            color: #e2e8f0;
+            text-align: left;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .choice-btn:hover {
+            background: rgba(0, 245, 255, 0.15);
+            border-color: #00f5ff;
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.35);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-20 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 no-underline">
+                <i class="fa-solid fa-house"></i>
+                <span class="hidden sm:inline">ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-atom animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow uppercase">
+                        CHRONIQUES DU MULTIVERS
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60">10 MISSIONS // 8 ÉTAPES TACTIQUES</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="goToWelcome()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">RÉINITIALISER</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-3xl mx-auto w-full relative z-10 my-4">
+
+        <!-- Écran d'accueil / Règles -->
+        <div id="startScreen" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-book-journal-whills text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                OPÉRATION MULTIVERS
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base">
+                [CONSOLE OVERWATCH] — Survivez à 8 étapes critiques par mission. Analyse tactique rigoureuse requise : les choix reposent sur des protocoles de sécurité avancés.
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left">
+                <h3 class="text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-terminal mr-2"></i> RÈGLES DU PROTOCOLE</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Chaque mission comporte <strong>8 étapes</strong> de décision tactique.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour valider les décisions avec le chat.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Une erreur de procédure déclenche l'échec immédiat de la mission.</li>
+                </ul>
+            </div>
+
+            <button onclick="startGame()" class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest">
+                LANCER L'AVENTURE <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Écran de Jeu Actif -->
+        <div id="gameScreen" class="w-full hidden flex flex-col space-y-4 holo-frame p-6 rounded-xl">
+            
+            <!-- Barre d'état -->
+            <div class="flex justify-between items-center border-b border-[#003b13] pb-3">
+                <div class="text-xs uppercase tracking-widest text-[#ffcc00] font-bold" id="missionIndicator">
+                    MISSION — ÉTAPE 1 / 8
+                </div>
+                <div class="text-xs text-[#00ff66]/80 font-bold uppercase tracking-wider">
+                    [ DÉCISION REQUISE ]
+                </div>
+            </div>
+
+            <!-- Alerte de sondage clignotante -->
+            <div class="text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse my-1">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <!-- Intitulé du scénario -->
+            <div class="py-2">
+                <p id="scenarioText" class="text-lg md:text-xl text-white font-bold leading-relaxed">
+                    Chargement du scénario...
+                </p>
+            </div>
+
+            <!-- Choix A et B -->
+            <div class="grid grid-cols-1 gap-3" id="choicesContainer">
+                <!-- Boutons injectés ici -->
+            </div>
+        </div>
+
+        <!-- Écran de Fin (Succès ou Échec) -->
+        <div id="resultScreen" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl hidden">
+            <div id="resultIconContainer" class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <!-- Icône dynamique -->
+            </div>
+            <h2 class="text-3xl font-bold mb-3 text-[#00ff66] text-glow uppercase tracking-wider" id="resultTitle">
+                TITRE RÉSULTAT
+            </h2>
+            <p class="text-base md:text-lg text-white/90 mb-8 leading-relaxed" id="resultDesc">
+                Description...
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button id="resultActionBtn" class="cyber-btn px-6 py-3 rounded-lg font-bold uppercase">
+                    NOUVELLE MISSION
+                </button>
+                <a href="index.html" class="cyber-btn px-6 py-3 rounded-lg font-bold uppercase flex items-center justify-center no-underline">
+                    RETOUR HUB <i class="fa-solid fa-house ml-2"></i>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10">
+        OVERWATCH PROTOCOL // CHRONIQUES DU MULTIVERS
+    </footer>
+
+    <script>
+        // Matrix Rain léger
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        // 10 Missions Haute Difficulté (8 Étapes chacune) avec choix rigoureux
+        const missionsDatabase = [
+            {
+                title: "Mission 1 : Le Coffre de S.T.A.R. Labs",
+                steps: [
+                    { text: "Vous pénétrez dans S.T.A.R. Labs. Le pare-feu quantique exige une injection de phase immédiate pour éviter le traçage.", choices: [ { text: "Injecter un flux de tachyons inversé pour tromper les capteurs de phase", nextStep: 1 }, { text: "Surcharger les circuits quantiques de la porte principale pour forcer l'accès", isFail: true, failText: "La surtension active le protocole d'isolement cellulaire d'Eobard Thawne." } ] },
+                    { text: "Le terminal principal demande une clé cryptographique basée sur une constante temporelle instable.", choices: [ { text: "Calculer l'algorithme de résonance du multivers (Terre-1)", isFail: true, failText: "Erreur de calcul de phase : le terminal verrouille définitivement le disque." }, { text: "Utiliser la rémanence énergétique résiduelle du vestige temporel de Barry", nextStep: 2 } ] },
+                    { text: "La Time Vault est ouverte, mais un piège à photons de l'accélérateur de particules s'amorce.", choices: [ { text: "Neutraliser le champ magnétique en court-circuitant le plasma", nextStep: 3 }, { text: "Désamorcer manuellement le condensateur principal au fond de la salle", isFail: true, failText: "Le condensateur réagit au contact thermique : décharge ionique létale." } ] },
+                    { text: "En fuyant sur les toits avec le prototype, un drone de reconnaissance tactique ARGUS verrouille votre position.", choices: [ { text: "Déployer un leurre thermique holographique en altitude", nextStep: 4 }, { text: "Brouiller ses fréquences radar avec votre terminal portatif", isFail: true, failText: "Le drone bascule en mode balayage optique secondaire et confirme votre position." } ] },
+                    { text: "Vous devez traverser un pont suspendu surveillé par des senseurs sismiques et thermiques couplés.", choices: [ { text: "Marcher à pas synchronisés sur les fréquences de tension des câbles porteurs", isFail: true, failText: "Les senseurs détectent l'anomalie structurelle : déclenchement du tir de barrage." }, { text: "Longer la structure métallique immergée sous le tablier du pont", nextStep: 5 } ] },
+                    { text: "Dans les canalisations secondaires, un flux de vapeur acide haute pression bloque l'accès.", choices: [ { text: "Activer la vanne de dérivation d'urgence pour purger le circuit en douceur", nextStep: 6 }, { text: "Filer à toute vitesse en rampant sous le jet de vapeur active", isFail: true, failText: "Asphyxie instantanée et brûlures chimiques graves au 3ème degré." } ] },
+                    { text: "Le véhicule de fuite programmé affiche une erreur de synchronisation GPS par satellite.", choices: [ { text: "Redémarrer le module en passant en navigation inertielle pure", nextStep: 7 }, { text: "Modifier manuellement les coordonnées de destination dans l'ordinateur de bord", isFail: true, failText: "Le système de sécurité anti-vol transmet vos coordonnées exactes à la police." } ] },
+                    { text: "Dernier barrage de sécurité : le protocole de quarantaine photonique de la ville est activé.", choices: [ { text: "Forcer la barrière en activant le bouclier à impulsion tachyonique", isSuccess: true, successText: "Passage en force validé ! Le prototype est exfiltré avec un succès total." }, { text: "Emprunter le tunnel de service désaffecté sous la zone de quarantaine", isFail: true, failText: "Le tunnel est miné par les forces spéciales d'ARGUS : échec de la mission." } ] }
+                ]
+            },
+            {
+                title: "Mission 2 : L'Infiltration de Lian Yu",
+                steps: [
+                    { text: "Votre transport approche de Lian Yu en évitant les radars de l'Opération Eden. L'atterrissage doit être chirurgical.", choices: [ { text: "Sauter en piqué dans la canopée dense en freinant avec le grappin tactique", nextStep: 1 }, { text: "Poser l'appareil en douceur sur la plage isolée du nord de l'île", isFail: true, failText: "La plage est couverte de mines magnétiques sous-marines de type Fyers." } ] },
+                    { text: "Au sol, la boussole magnétique s'affole à cause de gisements de minerais souterrains.", choices: [ { text: "S'orienter par triangulation stellaire à travers la jungle profonde", nextStep: 2 }, { text: "Suivre le lit de la rivière principale pour avancer plus rapidement", isFail: true, failText: "Le lit de la rivière est sous surveillance constante par caméras thermiques." } ] },
+                    { text: "Un poste avancé de mercenaires lourdement armés barre l'unique col rocheux.", choices: [ { text: "Provoquer un éboulement de pierres contrôlé pour détourner leur attention", nextStep: 3 }, { text: "Tenter de neutraliser le factionnaire posté à l'entrée en silence", isFail: true, failText: "Le factionnaire déclenche une balise de détresse cryptée instantanée." } ] },
+                    { text: "La paroi rocheuse escarpée à gravir est détrempée par une tempête tropicale soudaine.", choices: [ { text: "Fixer des pitons à expansion chimique dans la roche friable", nextStep: 4 }, { text: "Grimper en solo en s'aidant des lianes robustes locales", isFail: true, failText: "Une liane pourrie cède sous votre poids : chute mortelle dans le ravin." } ] },
+                    { text: "Vous atteignez l'entrée d'un ancien bunker de l'A.R.G.U.S. piégé par un code dynamique.", choices: [ { text: "Analyser la signature thermique du clavier pour deviner les touches utilisées", nextStep: 5 }, { text: "Tenter le code d'accès universel d'urgence des agents de terrain (0199)", isFail: true, failText: "Verrouillage total des circuits et libération d'un gaz incapacitant." } ] },
+                    { text: "Le système de ventilation interne rejette de l'air saturé en gaz soporifique léger.", choices: [ { text: "Synchroniser sa respiration et progresser en apnée par segments", nextStep: 6 }, { text: "Enfiler un masque à gaz militaire périmé trouvé dans un casier de service", isFail: true, failText: "Le filtre du masque est altéré : endormissement foudroyant." } ] },
+                    { text: "Vous accédez au serveur central pour récupérer les fichiers d'Operation Eden.", choices: [ { text: "Extraire les données via un pont optique sécurisé à faible débit", nextStep: 7 }, { text: "Copier l'intégralité du disque dur sur une clé USB standard non sécurisée", isFail: true, failText: "La clé déclenche un mouchard destructeur qui efface les données et grille le port." } ] },
+                    { text: "L'autodestruction du site est enclenchée. Il faut fuir immédiatement par la côte ouest.", choices: [ { text: "Rejoindre le canot pneumatique d'urgence dissimulé dans les mangroves", isSuccess: true, successText: "Extraction réussie de justesse avant l'explosion cataclysmique du bunker !" }, { text: "Emprunter le ponton principal où attend un patrouilleur ennemi armé", isFail: true, failText: "Accueil fatal par les artilleurs côtiers de la base militaire." } ] }
+                ]
+            },
+            {
+                title: "Mission 3 : Sauvetage à National City",
+                steps: [
+                    { text: "Des drones extraterrestres de combat s'acharnent sur le réseau électrique de la ville.", choices: [ { text: "Surcharger un nœud de transformateur pour créer une IEM ciblée", nextStep: 1 }, { text: "Tirer sur les drones avec un fusil à plasma de la D.E.O.", isFail: true, failText: "Les drones se multiplient en absorbant l'énergie pure de vos tirs." } ] },
+                    { text: "Le noyau d'énergie de l'IEM improvisée entre en fusion thermique critique.", choices: [ { text: "Injecter de l'azote liquide stabilisé dans les conduits de refroidissement", nextStep: 2 }, { text: "Ventiler manuellement la chambre en ouvrant les vannes d'air", isFail: true, failText: "L'oxygène extérieur provoque une déflagration immédiate." } ] },
+                    { text: "Un groupe de civils est prisonnier sous une structure en titane effondrée.", choices: [ { text: "Utiliser un découpeur plasma à basse fréquence pour préserver l'équilibre", nextStep: 3 }, { text: "Soulever les poutres à l'aide d'un treuil hydraulique de secours", isFail: true, failText: "La structure bascule sous la pression et écrase la zone de sécurité." } ] },
+                    { text: "Un message crypté de la D.E.O. vous transmet une fréquence de contre-mesure.", choices: [ { text: "Diffuser la fréquence sur le réseau d'urgence civique de la ville", nextStep: 4 }, { text: "Transmettre la fréquence directement au vaisseau mère alien", isFail: true, failText: "Le vaisseau analyse votre position exacte et verrouille un tir orbital." } ] },
+                    { text: "Les drones restants déploient un champ de force cinétique impénétrable.", choices: [ { text: "Utiliser une ogive à inversion de polarité pour percer le bouclier", nextStep: 5 }, { text: "Envoyer une charge explosive conventionnelle massive sur la barrière", isFail: true, failText: "L'onde de choc est réfléchie à 100% et vous pulvérise sur place." } ] },
+                    { text: "Le vaisseau mère ennemi amorce une descente agressive vers le centre urbain.", choices: [ { text: "Pirater le système de guidage inertiel de leur passerelle principale", nextStep: 6 }, { text: "Tenter de détourner leur attention en tirant des fusées de détresse", isFail: true, failText: "Leurs capteurs ignorent les leurres et ripostent instantanément." } ] },
+                    { text: "Le système de propulsion du vaisseau ennemi commence à cracher du plasma brut.", choices: [ { text: "Activer les réflecteurs solaires de la tour pour aveugler leurs optiques", nextStep: 7 }, { text: "Grimper sur la coque pour poser une charge explosive manuelle", isFail: true, failText: "La coque est incandescente : calcination instantanée." } ] },
+                    { text: "Dernière étape : sécuriser la zone de crash pour récupérer la technologie alien.", choices: [ { text: "Établir un périmètre de confinement quantique étanche", isSuccess: true, successText: "Zone sécurisée avec brio ! National City est sauvée." }, { text: "Laisser les autorités civiles inspecter les débris sans protection", isFail: true, failText: "Contamination radioactive généralisée de la zone de crash." } ] }
+                ]
+            },
+            {
+                title: "Mission 4 : Le QG de la Ligue des Assassins",
+                steps: [
+                    { text: "Vous devez vous introduire dans le temple fortifié de Nanda Parbat sans éveiller les soupçons de Ra's al Ghul.", choices: [ { text: "Emprunter les aqueducs souterrains désaffectés sous la montagne", nextStep: 1 }, { text: "Escalader directement la façade principale du temple de nuit", isFail: true, failText: "Des archers sentinelles patrouillent en permanence sur les corniches." } ] },
+                    { text: "La relique convoitée repose sur un piédestal relié à un mécanisme de pression sensible.", choices: [ { text: "Remplacer la relique par un lingot de poids identique au milligramme près", nextStep: 2 }, { text: "Utiliser un champ magnétique pour soulever la relique délicatement", isFail: true, failText: "Le champ perturbe le mécanisme et déclenche les dards empoisonnés." } ] },
+                    { text: "L'alarme des ombres retentit dans l'ensemble des galeries rocheuses.", choices: [ { text: "Activer une grenade fumigène aveuglante à opacification totale", nextStep: 3 }, { text: "Courir le plus vite possible vers la sortie principale éclairée", isFail: true, failText: "Cible parfaite dans les couloirs découverts sous les tirs d'arbalète." } ] },
+                    { text: "Un maître d'armes de la Ligue vous barre la route dans un goulet étroit.", choices: [ { text: "Parier sur une feinte de corps pour le déséquilibrer au couteau", nextStep: 4 }, { text: "Engager un duel de force brutale au sabre avec lui", isFail: true, failText: "Sa maîtrise technique millénaire surclasse instantanément la vôtre." } ] },
+                    { text: "Vous débouchez sur un pont de corde suspendu au-dessus d'un gouffre abyssal.", choices: [ { text: "Progresser à plat ventre en sécurisant chaque attache avec un mousqueton", nextStep: 5 }, { text: "Traverser en courant en faisant confiance à votre agilité", isFail: true, failText: "Le pont bascule sous l'effet de la vitesse et rompt net." } ] },
+                    { text: "Une tempête de neige alpine soudaine réduit la visibilité à zéro sur le plateau.", choices: [ { text: "Suivre la ligne de vie en relief creusée dans la roche par les moines", nextStep: 6 }, { text: "Marcher au jugé en suivant la pente descendante générale", isFail: true, failText: "Vous marchez droit dans une crevasse de glacier invisible." } ] },
+                    { text: "Un prédateur alpha (loup des neiges des cimes) vous bloque le sentier de fuite.", choices: [ { text: "Reculer lentement sans mouvements brusques en évitant le contact visuel", nextStep: 7 }, { text: "Tenter d'effrayer la bête en brandissant une torche enflammée", isFail: true, failText: "La bête interprète cela comme une agression et bondit à la gorge." } ] },
+                    { text: "Dernière étape : le point d'extraction héliporté dans la vallée de Nanda Parbat.", choices: [ { text: "Signaler l'appareil avec un code lumineux stroboscopique chiffré", isSuccess: true, successText: "Extraction parfaite ! La relique est en sécurité loin des griffes de la Ligue." }, { text: "Allumer un feu de détresse classique à l'ancienne", isFail: true, failText: "Repéré par les éclaireurs ennemis qui pilonnent la zone au mortier." } ] }
+                ]
+            },
+            {
+                title: "Mission 5 : L'Attaque du Waverider",
+                steps: [
+                    { text: "Le Waverider subit une avarie critique suite à un saut dans le flux temporel instable. Gideon ne répond plus.", choices: [ { text: "Redémarrer manuellement le processeur central via la console de secours", nextStep: 1 }, { text: "Purger l'intégralité du carburant temporel pour stabiliser la coque", isFail: true, failText: "Sans carburant, le vaisseau dérive à jamais hors du temps." } ] },
+                    { text: "Un paradoxe temporel génère des boucles d'énergie destructrices dans les coursives.", choices: [ { text: "Isoler le secteur endommagé en verrouillant les cloisons blindées", nextStep: 2 }, { text: "Tenter de neutraliser la singularité temporelle à l'aide d'un pistolet laser", isFail: true, failText: "L'énergie du pistolet amplifie la boucle et pulvérise la salle." } ] },
+                    { text: "Le vaisseau s'échoue en catastrophe dans un Star City alternatif de l'an 2046.", choices: [ { text: "Activer le camouflage optique passif du fuselage en mode furtif", nextStep: 3 }, { text: "Sortir de force pour inspecter les dégâts extérieurs de visu", isFail: true, failText: "Des gangs de pillards armés vous repèrent et ouvrent le feu." } ] },
+                    { text: "La résistance locale exige un mot de passe mémoriel avant de vous accorder leur aide.", choices: [ { text: "Utiliser la phrase de reconnaissance des agents du protocole de 2035", nextStep: 4 }, { text: "Tenter de négocier en offrant des rations de nourriture du vaisseau", isFail: true, failText: "Ils vous prennent pour des espions et vous jettent aux parias." } ] },
+                    { text: "Pour réparer le propulseur, il faut récupérer un composant dans une vieille armurerie piégée.", choices: [ { text: "Utiliser un décodeur de fréquence pour désarmer le piège à pression", nextStep: 5 }, { text: "Forcer le panneau de l'armoire à coups de barre à mine", isFail: true, failText: "Le piège à gaz neurotoxique intégré se déclenche instantanément." } ] },
+                    { text: "Des chasseurs de primes temporels cernent le bâtiment de la résistance.", choices: [ { text: "Créer une diversion holographique à l'autre bout de la rue", nextStep: 6 }, { text: "Tenter une sortie frontale en tirant dans le tas", isFail: true, failText: "Submergé par la puissance de feu lourde des chasseurs de primes." } ] },
+                    { text: "Vous regagnez le Waverider mais un champ de force bloque l'accès sas.", choices: [ { text: "Surcharger le générateur du bouclier avec une impulsion de phase", nextStep: 7 }, { text: "Tenter de pirater le code principal depuis l'extérieur sans interface", isFail: true, failText: "Le système anti-intrusion vous envoie une décharge de 10 000 volts." } ] },
+                    { text: "Décollage temporel imminent ! Le vecteur de fuite doit être calculé avec précision.", choices: [ { text: "Lancer le saut en mode automatique sécurisé par Gideon", isSuccess: true, successText: "Saut temporel réussi avec succès ! Le Waverider reprend sa route." }, { text: "Tenter un saut manuel en mode forcé pour aller plus vite", isFail: true, failText: "Erreur de coordonnées : le vaisseau se matérialise au cœur d'une étoile." } ] }
+                ]
+            },
+            {
+                title: "Mission 6 : Infiltration chez ARGUS",
+                steps: [
+                    { text: "Vous devez subtiliser les codes d'accès d'un satellite militaire top-secret d'ARGUS.", choices: [ { text: "Pirater le système de reconnaissance biométrique à distance", nextStep: 1 }, { text: "Tenter d'entrer en utilisant un badge volé de bas niveau", isFail: true, failText: "Le contrôle d'iris de sécurité rejette le badge et déclenche l'alarme." } ] },
+                    { text: "Le pare-feu informatique réagit en lançant une purge des données en temps réel.", choices: [ { text: "Injecter un virus de gel logique pour stopper le processus de purge", nextStep: 2 }, { text: "Débrancher brutalement les câbles du serveur principal pour l'arrêter de force", isFail: true, failText: "Le système de secours détruit physiquement les disques durs par sécurité." } ] },
+                    { text: "Une patrouille de gardes lourds approche de la salle des serveurs sécurisée.", choices: [ { text: "Se glisser dans le faux plafond technique inoccupé", nextStep: 3 }, { text: "Se cacher sous les bureaux en espérant qu'ils ne regardent pas", isFail: true, failText: "Ils effectuent un balayage thermique sous les tables : repéré !" } ] },
+                    { text: "Vous accédez au bureau sécurisé de la directrice Lyla Michaels.", choices: [ { text: "Ouvrir le coffre mural dissimulé derrière un écran tactique", nextStep: 4 }, { text: "Fouiller les tiroirs du bureau à la recherche d'une note papier", isFail: true, failText: "Les tiroirs sont piégés par un capteur chimique d'empreintes." } ] },
+                    { text: "Le coffre mural contient la clé USB maître hautement cryptée.", choices: [ { text: "Copier les données via un relais quantique sans contact", nextStep: 5 }, { text: "Prendre la clé physique et fuir immédiatement avec", isFail: true, failText: "La clé possède un traceur GPS satellite actif inamovible." } ] },
+                    { text: "L'alarme générale ARGUS retentit suite à une anomalie de réseau détectée.", choices: [ { text: "Emprunter le réseau d'évacuation par les sous-sols désaffectés", nextStep: 6 }, { text: "Remonter vers les étages supérieurs pour chercher un toit", isFail: true, failText: "Les toits sont bouclés par des tireurs d'élite d'intervention." } ] },
+                    { text: "Les portes blindées se referment séquentiellement sur votre trajectoire.", choices: [ { text: "Glisser sous l'avant-dernière porte avant la fermeture complète", nextStep: 7 }, { text: "Essayer de bloquer la porte blindée avec un pied de biche", isFail: true, failText: "La puissance hydraulique de la porte broie votre outil et vous coince." } ] },
+                    { text: "Dernière étape : franchir le portail de sortie du complexe militaire.", choices: [ { text: "Pirater la barrière automatique pour qu'elle s'ouvre à votre passage", isSuccess: true, successText: "Sortie parfaite ! Les données d'ARGUS sont en votre possession." }, { text: "Foncer à pied à travers les guérites de contrôle principales", isFail: true, failText: "Cible idéale sous les feux croisés de la milice du complexe." } ] }
+                ]
+            },
+            {
+                title: "Mission 7 : Le Piège de Tierra-X",
+                steps: [
+                    { text: "Vous débarquez par erreur sur une Terre alternative sous un régime autoritaire extrême.", choices: [ { text: "Utiliser un brouilleur de fréquences pour masquer votre signature", nextStep: 1 }, { text: "Marcher d'un pas assuré en uniforme improvisé dans la rue", isFail: true, failText: "Contrôle de citoyenneté obligatoire par la milice locale : arrestation." } ] },
+                    { text: "Un officier exige vos papiers d'authentification au coin d'une avenue surveillée.", choices: [ { text: "Projeter un faux matricule holographique de haut gradé", nextStep: 2 }, { text: "Tenter de corrompre l'officier avec des composants technologiques", isFail: true, failText: "La corruption est passible d'exécution immédiate dans ce monde." } ] },
+                    { text: "Le terminal de la station de transmission du portail est protégé par un mot de passe à rebours.", choices: [ { text: "Résoudre l'algorithme de hachage quantique de la console", nextStep: 3 }, { text: "Tenter des combinaisons de mots de passe par force brute", isFail: true, failText: "Le système déclenche une alerte silencieuse après 3 essais." } ] },
+                    { text: "Un garde surgit dans la salle de contrôle alors que le portail s'amorce.", choices: [ { text: "Le neutraliser par une prise d'étranglement furtive rapide", nextStep: 4 }, { text: "Engager le combat au corps à corps pour l'éliminer", isFail: true, failText: "Le bruit de la lutte attire toute la garnison du bâtiment." } ] },
+                    { text: "L'alimentation du portail vacille à cause d'une surcharge du réseau local.", choices: [ { text: "Rediriger l'énergie des projecteurs de défense vers le vortex", nextStep: 5 }, { text: "Taper sur le générateur pour décoincer le disjoncteur principal", isFail: true, failText: "Surtension fatale : le générateur explose entre vos mains." } ] },
+                    { text: "Des renforts ennemis bouclent l'accès au bâtiment du portail.", choices: [ { text: "Utiliser les conduits d'évacuation d'air de secours", nextStep: 6 }, { text: "Tenter de négocier un sauf-conduit avec le capitaine", isFail: true, failText: "Les ordres reçus interdisent de faire des prisonniers." } ] },
+                    { text: "Le portail instable commence à cracher des éclairs d'énergie pure.", choices: [ { text: "Stabiliser le flux avec un stabilisateur tachyonique portable", nextStep: 7 }, { text: "Sauter dedans immédiatement sans stabilisation préalable", isFail: true, failText: "Le flux instable désintègre votre corps en atomes épars." } ] },
+                    { text: "Dernière seconde : le vortex se referme sous l'effet des tirs ennemis.", choices: [ { text: "Plonger à travers le cœur du vortex avant la fermeture", isSuccess: true, successText: "Saut réussi in extremis ! Vous regagnez votre univers d'origine." }, { text: "Hésiter une fraction de seconde pour ramasser un équipement", isFail: true, failText: "Le portail se referme, vous piégeant à jamais sur Tierra-X." } ] }
+                ]
+            },
+            {
+                title: "Mission 8 : Braquage au Musée de Central City",
+                steps: [
+                    { text: "Un artefact tachyonique est exposé au musée. Le système laser est de type multiniveau.", choices: [ { text: "Désactiver les capteurs en injectant une boucle optique par la verrière", nextStep: 1 }, { text: "Couper l'alimentation générale du musée depuis le transformateur", isFail: true, failText: "L'alarme anti-intrusion autonome sur batterie se déclenche." } ] },
+                    { text: "Vous êtes dans la salle d'exposition principale sous haute surveillance.", choices: [ { text: "Utiliser un spray révélateur de faisceaux pour cartographier les lasers", nextStep: 2 }, { text: "Avancer prudemment au jugé en vous fiant à votre instinct", isFail: true, failText: "Vous coupez un faisceau invisible à déclenchement laser rapide." } ] },
+                    { text: "L'artefact repose sous une cloche de confinement magnétique instable.", choices: [ { text: "Désamorcer les aimants avec un neutralisateur de champ à résonance", nextStep: 3 }, { text: "Soulever la cloche d'un coup sec très rapide", isFail: true, failText: "Le champ magnétique se referme et broie l'objet et vos mains." } ] },
+                    { text: "L'alarme générale retentit : la police de Central City boucle le périmètre.", choices: [ { text: "Emprunter le monte-charge de service discret vers les sous-sols", nextStep: 4 }, { text: "Foncer vers la sortie principale pour prendre de vitesse les agents", isFail: true, failText: "Les escouades d'intervention vous attendent de pied ferme dehors." } ] },
+                    { text: "Flash (Barry Allen) arrive sur les lieux à vitesse éclair pour vous intercepter.", choices: [ { text: "Déployer une mine à impulsion tachyonique dispersive", nextStep: 5 }, { text: "Essayer de l'esquiver en courant en zigzaguant dans les couloirs", isFail: true, failText: "Il vous rattrape en une fraction de seconde et vous menotte." } ] },
+                    { text: "La mine ralentit Barry, mais l'agent de liaison bloque l'issue des sous-sols.", choices: [ { text: "Lancer un fumigène cryogénique pour saturer leurs capteurs", nextStep: 6 }, { text: "Tenter de les intimider avec vos armes", isFail: true, failText: "Ils ripostent par une décharge sonique incapacitante." } ] },
+                    { text: "Vous rejoignez la ruelle arrière où votre véhicule de fuite est garé.", choices: [ { text: "Démarrer discrètement sans phares dans la circulation dense", nextStep: 7 }, { text: "Rouler à pleine vitesse phares allumés sur les grands axes", isFail: true, failText: "Repéré immédiatement par l'hélicoptère de la police." } ] },
+                    { text: "Dernier obstacle : un barrage de police bloque l'accès au pont de sortie.", choices: [ { text: "Emprunter les chantiers du métro pour semer les patrouilles", isSuccess: true, successText: "Fuite magistrale ! L'artefact est en votre possession." }, { text: "Tenter de passer en force à travers les véhicules de barrage", isFail: true, failText: "Voitures béliers et herses : fin de course immédiate." } ] }
+                ]
+            },
+            {
+                title: "Mission 9 : Incursion au QG de la Ruche (H.I.V.E.)",
+                steps: [
+                    { text: "Damien Darhk prépare un rituel occulte dans un complexe souterrain secret.", choices: [ { text: "S'infiltrer par les conduits d'évacuation des fumées rituelles", nextStep: 1 }, { text: "Entrer par la grande porte dérobée de service de surface", isFail: true, failText: "Le poste de garde est tenu par une milice fanatisée armée." } ] },
+                    { text: "Des glyphes mystiques lumineux bloquent l'accès au sanctuaire intérieur.", choices: [ { text: "Utiliser un contre-sortilège d'inversion magique", nextStep: 2 }, { text: "Tenter de briser les glyphes à coups de charges explosives", isFail: true, failText: "L'énergie noire des glyphes absorbe l'explosion et vous consume." } ] },
+                    { text: "Vous découvrez les prisonniers retenus en cage sous influence occulte.", choices: [ { text: "Pirater le boîtier de commande électronique des cellules à distance", nextStep: 3 }, { text: "Forcer les barreaux des cages à la force des bras", isFail: true, failText: "Le bruit métallique alerte les prêtres gardiens du culte." } ] },
+                    { text: "Damien Darhk détecte l'intrusion et plonge la zone dans l'obscurité totale.", choices: [ { text: "Activer des lunettes à vision thermique et spectrale", nextStep: 4 }, { text: "Allumer des lampes torches tactiques de haute puissance", isFail: true, failText: "Vous devenez une cible incandescente évidente dans le noir." } ] },
+                    { text: "Un adepte armé d'une lame rituelle surgit de l'ombre pour vous attaquer.", choices: [ { text: "Parer l'attaque et riposter par une clé d'immobilisation", nextStep: 5 }, { text: "Essayer de parlementer avec lui en invoquant la clémence", isFail: true, failText: "Les adeptes n'ont aucune pitié et vous poignardent." } ] },
+                    { text: "Vous pénétrez enfin dans la salle principale du rituel magique.", choices: [ { text: "Tirer une flèche spéciale à impulsions anti-magie sur l'autel", nextStep: 6 }, { text: "Charger directement Darhk au corps à corps sabre au clair", isFail: true, failText: "Darhk vous paralyse d'un simple geste de télékinésie." } ] },
+                    { text: "La magie noire se dissout, mais la structure souterraine commence à céder.", choices: [ { text: "Guider rapidement les otages vers la sortie de secours", nextStep: 7 }, { text: "Vouloir récupérer les artefacts en or précieux sur l'autel", isFail: true, failText: "L'effondrement du plafond vous bloque sous les décombres." } ] },
+                    { text: "Dernière étape : remonter à la surface avant l'effondrement complet.", choices: [ { text: "Emprunter la galerie de ventilation secondaire de secours", isSuccess: true, successText: "Évacuation héroïque réussie ! Le culte de H.I.V.E. est en échec." }, { text: "Remonter par l'ascenseur principal bloqué par les débris", isFail: true, failText: "L'ascenseur décroche et chute au fond du puits." } ] }
+                ]
+            },
+            {
+                title: "Mission 10 : Le Casse de l'Immeuble Wayne",
+                steps: [
+                    { text: "Vous devez pénétrer dans le coffre-fort hautement sécurisé de Wayne Enterprises.", choices: [ { text: "Contourner le système de reconnaissance en simulant une mise à jour", nextStep: 1 }, { text: "Couper le secteur électrique principal de l'immeuble", isFail: true, failText: "Le système de défense autonome de Batman bascule sur une IA de combat." } ] },
+                    { text: "Un réseau complexe de lasers de défense infrarouges protège le couloir.", choices: [ { text: "Projeter un aérosol ionisant pour rendre les faisceaux visibles", nextStep: 2 }, { text: "Tenter de passer en rampant rapidement sous les faisceaux bas", isFail: true, failText: "Un faisceau dynamique caché se décale et déclenche les tourelles." } ] },
+                    { text: "Le coffre est ouvert, mais la super-batterie émet des radiations instables.", choices: [ { text: "Utiliser des pinces de manipulation robotisées blindées au plomb", nextStep: 3 }, { text: "Saisir la batterie rapidement avec des gants de protection standard", isFail: true, failText: "Les radiations traversent les gants : brûlure cellulaire grave." } ] },
+                    { text: "Le système de sécurité secondaire de Batwoman envoie une alerte de voisinage.", choices: [ { text: "Déployer un brouilleur de liaisons satellites localisé", nextStep: 4 }, { text: "Tenter de détruire le transmetteur à coups de crosse", isFail: true, failText: "Le boîtier est piégé par une charge électrique incapacitante." } ] },
+                    { text: "Des drones de surveillance autonomes de type 'Bat-bot' patrouillent la zone.", choices: [ { text: "Envoyer une impulsion électromagnétique (EMP) directionnelle", nextStep: 5 }, { text: "Les attaquer un par un en lançant des grappins", isFail: true, failText: "Leur nombre et leur agilité vous submergent en quelques secondes." } ] },
+                    { text: "Il faut quitter l'étage par un moyen non conventionnel.", choices: [ { text: "Emprunter la gaine technique verticale de maintenance", nextStep: 6 }, { text: "Sauter par la grande verrière du toit avec un paravoile", isFail: true, failText: "Les vents contraires de Gotham vous projettent contre la tour." } ] },
+                    { text: "La gaine technique est bloquée par un sas de sécurité incendie automatique.", choices: [ { text: "Utiliser une charge thermique de découpe de précision", nextStep: 7 }, { text: "Tenter de forcer les battants en acier trempé à l'épaule", isFail: true, failText: "Impossible de bouger l'acier : vous restez bloqué dans le conduit." } ] },
+                    { text: "Dernière étape : s'échapper à travers les ruelles labyrinthes de Gotham.", choices: [ { text: "Emprunter les toits sombres pour semer les traqueurs", isSuccess: true, successText: "Casse légendaire accompli avec brio au cœur de Gotham City !" }, { text: "Emprunter les grandes avenues éclairées en voiture rapide", isFail: true, failText: "Repéré par les caméras de circulation de la police corrompue." } ] }
+                ]
+            }
+        ];
+
+        let currentMissionIndex = 0;
+        let currentStepIndex = 0;
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function goToWelcome() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+        }
+
+        function startGame() {
+            currentMissionIndex = Math.floor(Math.random() * missionsDatabase.length);
+            currentStepIndex = 0;
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            loadStep();
+        }
+
+        function loadStep() {
+            const mission = missionsDatabase[currentMissionIndex];
+            const step = mission.steps[currentStepIndex];
+
+            document.getElementById('missionIndicator').innerText = `${mission.title} — ÉTAPE ${currentStepIndex + 1} / 8`;
+            document.getElementById('scenarioText').innerText = step.text;
+
+            const container = document.getElementById('choicesContainer');
+            container.innerHTML = '';
+
+            // Mélange aléatoire des choix A et B
+            const shuffledChoices = shuffle([...step.choices]);
+
+            shuffledChoices.forEach((choice, idx) => {
+                let btn = document.createElement('button');
+                btn.className = "choice-btn p-4 rounded-lg font-bold text-sm md:text-base flex items-center space-x-3";
+                btn.innerHTML = `
+                    <span class="w-8 h-8 rounded bg-[#003b13] border border-[#00ff66] flex items-center justify-center text-[#00ff66] text-sm font-bold shrink-0">${idx === 0 ? 'A' : 'B'}</span>
+                    <span class="flex-grow">${choice.text}</span>
+                `;
+                btn.onclick = () => handleChoice(choice);
+                container.appendChild(btn);
+            });
+        }
+
+        function handleChoice(choice) {
+            if (choice.isFail) {
+                showResult(false, choice.failText);
+            } else if (choice.isSuccess) {
+                showResult(true, choice.successText);
+            } else {
+                currentStepIndex = choice.nextStep;
+                loadStep();
+            }
+        }
+
+        function showResult(isSuccess, message) {
+            document.getElementById('gameScreen').classList.add('hidden');
+            const resScreen = document.getElementById('resultScreen');
+            resScreen.classList.remove('hidden');
+            resScreen.classList.remove('fail-frame');
+
+            const iconContainer = document.getElementById('resultIconContainer');
+            const titleEl = document.getElementById('resultTitle');
+            const descEl = document.getElementById('resultDesc');
+            const btnEl = document.getElementById('resultActionBtn');
+
+            if (isSuccess) {
+                iconContainer.className = "inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]";
+                iconContainer.innerHTML = '<i class="fa-solid fa-award text-5xl text-[#ffcc00] animate-bounce"></i>';
+                titleEl.innerText = "MISSION ACCOMPLIE";
+                titleEl.className = "text-3xl font-bold mb-3 text-[#00ff66] text-glow uppercase tracking-wider";
+                descEl.innerText = message;
+                btnEl.innerText = "LANCER UNE NOUVELLE MISSION →";
+                btnEl.onclick = startGame;
+            } else {
+                resScreen.classList.add('fail-frame');
+                iconContainer.className = "inline-block p-4 bg-[#3b000a] rounded-full mb-6 border border-[#ff0033]";
+                iconContainer.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-5xl text-[#ff0033] animate-pulse"></i>';
+                titleEl.innerText = "MISSION ÉCHOUÉE";
+                titleEl.className = "text-3xl font-bold mb-3 text-[#ff0033] uppercase tracking-wider";
+                descEl.innerText = message;
+                btnEl.innerText = "COMMENCER UNE NOUVELLE MISSION ↻";
+                btnEl.onclick = startGame;
+            }
+        }
+    </script>
+</body>
+</html>

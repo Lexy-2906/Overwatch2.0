@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Arrêt sur image (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.2;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.85);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px #00f5ff;
+            transform: scale(1.02);
+        }
+        .cyber-btn-wrong:hover {
+            background: #ff0033;
+            color: #fff;
+            border-color: #ff0033;
+            box-shadow: 0 0 20px #ff0033;
+        }
+
+        .image-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            background-color: #000000;
+            border: 2px solid #00ff66;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
+
+        @media (min-width: 768px) {
+            .image-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-25 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-house"></i>
+                <span class="hidden sm:inline">ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-image animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow uppercase">
+                        ARRÊT SUR IMAGE
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60">MODULE: SAISON & ÉPISODE IDENTIFIER</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="resetToWelcome()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">RESET</span>
+            </button>
+            <button onclick="toggleAudio()" id="audioBtn" class="cyber-btn px-3 py-2 rounded-lg text-xs flex items-center space-x-2">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                <span class="hidden sm:inline">SFX: OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-4xl mx-auto w-full relative z-10 my-6">
+
+        <!-- Écran d'accueil -->
+        <div id="startScreen" class="text-center w-full max-w-2xl holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-camera-retro text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                ARRÊT SUR IMAGE // CHRONOLOGIE
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base">
+                [CONSOLE OVERWATCH] — Testez vos connaissances sur l'Arrowverse. Retrouvez la saison et l'épisode exacts correspondants à chaque capture d'écran officielle (choix binaire A / B).
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left">
+                <h3 class="text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-terminal mr-2"></i> PROTOCOLE DE TEST</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Base de données de moments cultes de la série Arrow.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour voter et valider la bonne réponse avec le chat.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> 2 propositions par image (positions A et B équilibrées).</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Validez vos choix pour prouver votre expertise.</li>
+                </ul>
+            </div>
+
+            <button onclick="startQuiz()" class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest">
+                LANCER L'ANALYSE <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Écran de Quiz -->
+        <div id="quizScreen" class="w-full hidden flex flex-col items-center max-w-3xl">
+            <!-- Barre de progression -->
+            <div class="w-full holo-frame p-4 rounded-xl mb-4 flex justify-between items-center">
+                <span class="text-sm font-bold text-[#ffcc00]" id="questionIndicator">QUESTION 1 / 10</span>
+                <div class="w-1/2 bg-[#003b13] h-2 rounded-full overflow-hidden border border-[#00ff66]">
+                    <div id="progressBar" class="bg-[#00ff66] h-full w-10%"></div>
+                </div>
+                <span class="text-sm font-bold text-[#00ff66]">SCORE: <span id="scoreVal">0</span></span>
+            </div>
+
+            <!-- Alerte de sondage clignotante -->
+            <div class="w-full text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse mb-4">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest font-mono">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <!-- Cadrage de l'image de la scène -->
+            <div class="w-full holo-frame p-4 rounded-2xl mb-6 flex flex-col items-center">
+                <div class="image-container mb-3">
+                    <img id="questionImg" src="" alt="Scène Arrow">
+                </div>
+                <p class="text-xs text-[#00ff66]/60 uppercase tracking-widest text-center">[ CAPTURE D'ÉCRAN OFFICIELLE ]</p>
+            </div>
+
+            <!-- Options de réponses (2 choix : A et B) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <button onclick="checkAnswer(0)" id="option0" class="cyber-btn cyber-btn-wrong p-4 rounded-xl text-left font-bold border border-[#003b13] transition text-sm sm:text-base flex items-center space-x-3">
+                    <span class="w-8 h-8 rounded bg-[#003b13] border border-[#00ff66] flex items-center justify-center text-[#00ff66] text-sm font-bold shrink-0">A</span>
+                    <span id="textOption0" class="flex-grow"></span>
+                </button>
+                <button onclick="checkAnswer(1)" id="option1" class="cyber-btn cyber-btn-wrong p-4 rounded-xl text-left font-bold border border-[#003b13] transition text-sm sm:text-base flex items-center space-x-3">
+                    <span class="w-8 h-8 rounded bg-[#003b13] border border-[#00ff66] flex items-center justify-center text-[#00ff66] text-sm font-bold shrink-0">B</span>
+                    <span id="textOption1" class="flex-grow"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Écran de Fin -->
+        <div id="endScreen" class="hidden text-center w-full max-w-2xl holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-4 border border-[#ffcc00]">
+                <i class="fa-solid fa-file-waveform text-5xl text-[#ffcc00] animate-bounce"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-[#ffcc00] uppercase tracking-widest mb-2">[ RAPPORT D'ANALYSE TERMINÉ ]</h2>
+            
+            <div class="text-6xl font-extrabold my-6 text-white text-glow" id="finalScoreText">10/10</div>
+            <p class="text-[#00ff66] uppercase tracking-widest mb-8 text-sm" id="scoreComment"></p>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button onclick="resetToWelcome()" class="cyber-btn flex-1 py-4 rounded-xl font-bold text-sm uppercase tracking-widest">
+                    RECOMMENCER <i class="fa-solid fa-rotate-right ml-2"></i>
+                </button>
+                <a href="index.html" class="cyber-btn flex-1 py-4 rounded-xl font-bold text-sm uppercase tracking-widest flex items-center justify-center space-x-2 text-center no-underline">
+                    <span>ACCUEIL HUB</span> <i class="fa-solid fa-house ml-2"></i>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bouton Reset Fixe -->
+    <button onclick="resetToWelcome()" class="fixed right-6 bottom-6 cyber-btn px-4 py-3 rounded-xl text-xs flex items-center space-x-2 font-bold z-50 shadow-2xl">
+        <i class="fa-solid fa-rotate-right text-[#00ff66]"></i>
+        <span>RESET</span>
+    </button>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10">
+        OVERWATCH PROTOCOL // ARROW TIMELINE VERIFICATION
+    </footer>
+
+    <script>
+        // Matrix Rain
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        // Audio Synth
+        let audioEnabled = false;
+        let synth = null;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+            }
+        }
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const btn = document.getElementById('audioBtn');
+            if (audioEnabled) {
+                Tone.start();
+                initAudio();
+                icon.className = "fa-solid fa-volume-high";
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span class="hidden sm:inline">SFX: ON</span>';
+            } else {
+                icon.className = "fa-solid fa-volume-xmark";
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i><span class="hidden sm:inline">SFX: OFF</span>';
+            }
+        }
+        function playTone(note = "A4") {
+            if (!audioEnabled || !synth) return;
+            try { synth.triggerAttackRelease(note, "16n"); } catch(e) {}
+        }
+
+        const questionPool = [
+            { image: "https://m.media-amazon.com/images/M/MV5BNjE0YWQwYTktNzE4Ni00ZGE4LWFiNzUtY2RiNDU4MDcxNmYwXkEyXkFqcGc@._V1_.jpg", answer: "Saison 1, Épisode 1", options: ["Saison 1, Épisode 1", "Saison 2, Épisode 1"] },
+            { image: "https://sf1.telestar.fr/wp-content/uploads/telestarv2/2023/01/Arrow-les-photos-sexy-de-Stephen-Amell-Photos.jpg", answer: "Saison 1, Épisode 23", options: ["Saison 1, Épisode 23", "Saison 2, Épisode 23"] },
+            { image: "https://static.wikia.nocookie.net/arrow/images/f/f6/Slade%2C_Oliver_and_Sara_prepare_for_battle.png/revision/latest/scale-to-width-down/1000?cb=20141107093955", answer: "Saison 2, Épisode 15", options: ["Saison 2, Épisode 15", "Saison 3, Épisode 14"] },
+            { image: "https://static.wikia.nocookie.net/arrow/images/0/06/Oliver_hallucinates_of_Slade_in_the_Arrowcave.png/revision/latest/scale-to-width-down/1000?cb=20150814175522", answer: "Saison 2, Épisode 9", options: ["Saison 2, Épisode 9", "Saison 3, Épisode 8"] },
+            { image: "https://static.wikia.nocookie.net/arrow/images/c/ce/League_of_Assassins_members.png/revision/latest/scale-to-width-down/1000?cb=20190228181730", answer: "Saison 2, Épisode 5", options: ["Saison 2, Épisode 5", "Saison 3, Épisode 1"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMjA1MDEyOTUzM15BMl5BanBnXkFtZTgwNTM1NjY3NzE@._V1_.jpg", answer: "Saison 4, Épisode 10", options: ["Saison 4, Épisode 10", "Saison 3, Épisode 20"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BOTc2NzYwMjczOV5BMl5BanBnXkFtZTgwNTUzNzkwNDE@._V1_.jpg", answer: "Saison 3, Épisode 10", options: ["Saison 3, Épisode 10", "Saison 2, Épisode 12"] },
+            { image: "https://static.wikia.nocookie.net/arrow/images/3/36/Oliver_and_Ra%27s_stare_down_prior_to_their_duel.png/revision/latest?cb=20141211051337", answer: "Saison 3, Épisode 9", options: ["Saison 3, Épisode 9", "Saison 4, Épisode 20"] },
+            { image: "https://i0.wp.com/jackandthegeekstalk.wordpress.com/wp-content/uploads/2016/05/thealaurel.png?w=582&h=327&ssl=1", answer: "Saison 4, Épisode 18", options: ["Saison 4, Épisode 18", "Saison 5, Épisode 1"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BYWM0YjcxOGMtOGVmNy00NDQ0LWIyZTQtY2JkYzhkODI3NjVlXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 5, Épisode 22", options: ["Saison 5, Épisode 22", "Saison 5, Épisode 15"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMjdmY2Q0NmMtNGI0ZS00MDlhLThhMGUtODRiMTAzMGY4MzNmXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 5, Épisode 23", options: ["Saison 5, Épisode 23", "Saison 6, Épisode 1"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BOWNlNTkyNDQtZjc3Zi00NWM1LTllZTgtODFiMmYzNDZjOWI2XkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 6, Épisode 12", options: ["Saison 6, Épisode 12", "Saison 6, Épisode 11"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BYjk0NTBhYzMtOWU1Yi00ZjgwLTg1YmQtYjU1ZGU4ZjVlNGEzXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 7, Épisode 1", options: ["Saison 7, Épisode 1", "Saison 6, Épisode 23"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BZjM5MjI5YTctZGE0MS00NzdmLTk0NDktYmQ4ZThjODU3NzYyXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 8, Épisode 1", options: ["Saison 8, Épisode 1", "Saison 7, Épisode 22"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BNTM5ZGZkZGYtZmE3ZC00ZWYxLTg3NmUtNmFhNDFkZWZkZjkxXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 8, Épisode 10", options: ["Saison 8, Épisode 10", "Saison 7, Épisode 22"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMTQ5NzY3ODcwMF5BMl5BanBnXkFtZTcwNDQ3MDAxOQ@@._V1_QL75_UX1600_.jpg", answer: "Saison 1, Épisode 15", options: ["Saison 1, Épisode 15", "Saison 1, Épisode 16"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMjA4OTUwNjQ3NV5BMl5BanBnXkFtZTcwMDY0MzU0OQ@@._V1_QL75_UX1600_.jpg", answer: "Saison 1, Épisode 22", options: ["Saison 1, Épisode 22", "Saison 3, Épisode 20"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMjI3ODU3MzUyNV5BMl5BanBnXkFtZTgwODA1OTkzNDE@._V1_QL75_UX1600_.jpg", answer: "Saison 3, Épisode 13", options: ["Saison 3, Épisode 13", "Saison 4, Épisode 18"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMTYxODMzMjkxOF5BMl5BanBnXkFtZTgwOTMwMDMwNzE@._V1_QL75_UX1600_.jpg", answer: "Saison 4, Épisode 1", options: ["Saison 4, Épisode 1", "Saison 3, Épisode 23"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BYmEzODYzNGEtYzAwYS00MTUyLWE3OWItY2M0MTJjMGMzYTQzXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 7, Épisode 2", options: ["Saison 7, Épisode 2", "Saison 7, Épisode 3"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMTYzNTEwNDYxM15BMl5BanBnXkFtZTgwNTk3MjM1NTE@._V1_QL75_UX1600_.jpg", answer: "Saison 3, Épisode 21", options: ["Saison 3, Épisode 21", "Saison 4, Épisode 3"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMTQ3NDEyMjYzMV5BMl5BanBnXkFtZTgwNTIyODE2MjE@._V1_QL75_UX1600_.jpg", answer: "Saison 3, Épisode 1", options: ["Saison 3, Épisode 1", "Saison 2, Épisode 23"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BN2I4Y2MwMDMtMTI3OS00MGVlLWJhZGMtNDRhYWVkYzBlZjY4XkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 5, Épisode 21", options: ["Saison 5, Épisode 21", "Saison 5, Épisode 18"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMTg0MTM3NjY4Nl5BMl5BanBnXkFtZTgwOTM0MjIyNTE@._V1_QL75_UX1600_.jpg", answer: "Saison 3, Épisode 19", options: ["Saison 3, Épisode 19", "Saison 4, Épisode 12"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMmUxNWY2ZGMtNjBmMC00ZTlmLTg5YzUtODhiZDQxMTYyMGZmXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 7, Épisode 16", options: ["Saison 7, Épisode 16", "Saison 8, Épisode 1"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BNTM5ZGZkZGYtZmE3ZC00ZWYxLTg3NmUtNmFhNDFkZWZkZjkxXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 8, Épisode 10", options: ["Saison 8, Épisode 10", "Saison 6, Épisode 10"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMzc1OTM5NzE2MV5BMl5BanBnXkFtZTgwNTA0NzgwNzE@._V1_QL75_UX1600_.jpg", answer: "Saison 4, Épisode 3", options: ["Saison 4, Épisode 3", "Saison 4, Épisode 1"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BNDg4MTczOTA4N15BMl5BanBnXkFtZTgwNDgwMzkxNzE@._V1_QL75_UX1600_.jpg", answer: "Saison 4, Épisode 5", options: ["Saison 4, Épisode 5", "Saison 3, Épisode 5"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BMzExMDQxNDAtNzIyZC00ZTEyLTliM2ItNWU3MTczNzU5ZWIzXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 5, Épisode 17", options: ["Saison 5, Épisode 17", "Saison 5, Épisode 18"] },
+            { image: "https://m.media-amazon.com/images/M/MV5BNTUxNDVhZTAtYzEzMi00Njg0LTkyZTItMTkzMmYwMDE3NzMzXkEyXkFqcGc@._V1_QL75_UX1600_.jpg", answer: "Saison 8, Épisode 8", options: ["Saison 8, Épisode 8", "Saison 7, Épisode 8"] }
+        ];
+
+        let quizQuestions = [];
+        let answerPositions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let isAnswering = false;
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function generateBalancedPositions(count = 10) {
+            let positions = [];
+            const half = Math.floor(count / 2);
+            for (let i = 0; i < half; i++) positions.push(0);
+            for (let i = half; i < count; i++) positions.push(1);
+
+            let valid = false;
+            let attempts = 0;
+            while (!valid && attempts < 100) {
+                positions = shuffle(positions);
+                valid = true;
+                for (let i = 2; i < positions.length; i++) {
+                    if (positions[i] === positions[i - 1] && positions[i] === positions[i - 2]) {
+                        valid = false;
+                        break;
+                    }
+                }
+                attempts++;
+            }
+            return positions;
+        }
+
+        function resetToWelcome() {
+            document.getElementById('quizScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            playTone("C4");
+        }
+
+        function startQuiz() {
+            const shuffledPool = shuffle(questionPool);
+            quizQuestions = shuffledPool.slice(0, 10);
+            answerPositions = generateBalancedPositions(10);
+            currentQuestionIndex = 0;
+            score = 0;
+            isAnswering = false;
+
+            document.getElementById('scoreVal').innerText = "0";
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('quizScreen').classList.remove('hidden');
+
+            playTone("G4");
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= quizQuestions.length) {
+                showEndScreen();
+                return;
+            }
+
+            isAnswering = false;
+            playTone("A4");
+            const q = quizQuestions[currentQuestionIndex];
+            const targetSlot = answerPositions[currentQuestionIndex];
+            
+            document.getElementById('questionIndicator').innerText = `QUESTION ${currentQuestionIndex + 1} / 10`;
+            const progressPercent = ((currentQuestionIndex) / 10) * 100;
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+            
+            document.getElementById('questionImg').src = q.image;
+
+            const wrongOption = q.options.find(opt => opt !== q.answer) || "Saison 1, Épisode 1";
+            const orderedOptions = targetSlot === 0 ? [q.answer, wrongOption] : [wrongOption, q.answer];
+
+            for (let i = 0; i < 2; i++) {
+                const textSpan = document.getElementById(`textOption${i}`);
+                const btn = document.getElementById(`option${i}`);
+                textSpan.innerText = orderedOptions[i];
+                btn.dataset.answer = q.answer;
+                btn.className = "cyber-btn cyber-btn-wrong p-4 rounded-xl text-left font-bold border border-[#003b13] transition text-sm sm:text-base flex items-center space-x-3";
+            }
+        }
+
+        function checkAnswer(chosenIndex) {
+            if (isAnswering) return;
+            isAnswering = true;
+
+            const textSpan = document.getElementById(`textOption${chosenIndex}`);
+            const btn = document.getElementById(`option${chosenIndex}`);
+            const q = quizQuestions[currentQuestionIndex];
+
+            if (textSpan.innerText === q.answer) {
+                playTone("E5");
+                btn.className = "p-4 rounded-xl text-left font-bold border border-[#00ff66] transition text-sm sm:text-base bg-[#00ff66] text-[#010803] shadow-lg shadow-[#00ff66]/50 flex items-center space-x-3";
+                score++;
+            } else {
+                playTone("C3");
+                btn.className = "p-4 rounded-xl text-left font-bold border border-[#ff0033] transition text-sm sm:text-base bg-[#ff0033] text-white shadow-lg shadow-[#ff0033]/50 flex items-center space-x-3";
+                
+                for(let i=0; i<2; i++) {
+                    const b = document.getElementById(`option${i}`);
+                    const ts = document.getElementById(`textOption${i}`);
+                    if (ts.innerText === q.answer) {
+                        b.className = "p-4 rounded-xl text-left font-bold border border-[#00ff66] transition text-sm sm:text-base bg-[#00ff66] text-[#010803] shadow-lg shadow-[#00ff66]/50 flex items-center space-x-3 animate-pulse";
+                    }
+                }
+            }
+
+            document.getElementById('scoreVal').innerText = score;
+
+            setTimeout(() => {
+                currentQuestionIndex++;
+                loadQuestion();
+            }, 1500);
+        }
+
+        function showEndScreen() {
+            playTone("C6");
+            document.getElementById('quizScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+
+            document.getElementById('finalScoreText').innerText = `${score} / 10`;
+            
+            let comment = "";
+            if(score === 10) comment = "RÉUSSITE CRITIQUE // ACCÈS OVERWATCH TOTAL ACCORDÉ";
+            else if(score >= 7) comment = "ANALYSE APPROUVÉE // CONNAISSANCES SOLIDES";
+            else comment = "ÉCHEC DU PROTOCOLE // RECALIBRAGE NÉCESSAIRE";
+            
+            document.getElementById('scoreComment').innerText = comment;
+        }
+    </script>
+</body>
+</html>

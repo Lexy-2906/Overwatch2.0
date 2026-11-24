@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrowverse - Qui suis-je ?</title>
+
+<style>
+:root {
+  --green: #2ea043;
+  --neon: #7ee787;
+  --dark: #050b07;
+  --panel: #0d1610;
+  --light: #8b949e;
+  --dim-green: #122619;
+  --danger: #f43f5e;
+  --border-glow: rgba(46, 160, 67, 0.4);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--dark);
+  color: white;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  text-align: center;
+  background-image: radial-gradient(circle at 50% 20%, #0d2315 0%, #050b07 70%);
+}
+
+button {
+  border: 1px solid var(--green);
+  background: var(--dim-green);
+  color: var(--neon);
+  padding: 13px 22px;
+  border-radius: 9px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 15px;
+  transition: .25s;
+}
+
+button:hover {
+  background: var(--green);
+  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 0 18px var(--border-glow);
+}
+
+button:active { transform: scale(.95); }
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.hidden { display: none !important; }
+
+header {
+  padding: 22px;
+  background: #0d1610;
+  border-bottom: 2px solid #1b4d28;
+}
+
+h1 {
+  color: var(--green);
+  font-size: clamp(32px, 6vw, 62px);
+  letter-spacing: 5px;
+  margin: 10px 0;
+  text-shadow: 0 0 15px rgba(46, 160, 67, 0.6);
+}
+
+h2 { color: var(--neon); }
+
+.subtitle {
+  color: var(--light);
+  letter-spacing: 3px;
+  font-family: 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+}
+
+.page {
+  max-width: 850px;
+  margin: auto;
+  padding: 25px 20px 90px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 2px solid var(--green);
+  border-radius: 15px;
+  padding: 25px;
+  margin: 20px auto;
+  box-shadow: 0 0 30px var(--border-glow);
+}
+
+.rules {
+  line-height: 2;
+  color: var(--light);
+  text-align: left;
+  max-width: 520px;
+  margin: auto;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress {
+  height: 7px;
+  background: #122619;
+  border-radius: 10px;
+  margin: 20px 0;
+  overflow: hidden;
+  border: 1px solid #1b4d28;
+}
+
+#progressBar {
+  height: 100%;
+  background: var(--green);
+  transition: width .4s;
+}
+
+/* ZONE DU PERSONNAGE */
+
+.portrait {
+  width: min(100%, 550px);
+  height: 340px;
+  margin: 20px auto;
+  background: #030a06;
+  border: 2px solid #1b4d28;
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+}
+
+.portrait img,
+.portrait canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.portrait img {
+  display: none;
+}
+
+.portrait canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.portrait.revealed {
+  border-color: var(--green);
+  box-shadow: 0 0 30px var(--border-glow);
+}
+
+.portrait.revealed canvas {
+  image-rendering: auto;
+}
+
+#stageLabel {
+  color: var(--neon);
+  letter-spacing: 2px;
+  font-size: 13px;
+}
+
+/* Style du chronomètre */
+#timerDisplay {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--neon);
+  margin: 10px 0;
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 2px;
+}
+
+@keyframes flashRed {
+  0%, 100% { color: var(--danger); text-shadow: 0 0 10px var(--danger); transform: scale(1); }
+  50% { color: #ffffff; text-shadow: 0 0 20px var(--danger); transform: scale(1.08); }
+}
+
+.blink-danger {
+  animation: flashRed 0.5s infinite ease-in-out;
+}
+
+#characterName {
+  font-size: 30px;
+  color: var(--neon);
+  margin: 18px;
+  animation: appear .6s;
+}
+
+#seriesName {
+  color: var(--light);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 25px 0;
+}
+
+#reset {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  background: rgba(244, 63, 94, 0.1);
+  border-color: var(--danger);
+  color: var(--danger);
+  z-index: 10;
+}
+
+#reset:hover {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+}
+
+footer {
+  color: var(--light);
+  font-size: 12px;
+  padding: 20px;
+}
+
+@media(max-width:550px) {
+  .portrait { height: 260px; }
+  .topbar { flex-wrap: wrap; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div style="display: flex; justify-content: flex-start; margin-bottom: 15px;">
+    <a href="index.html" style="text-decoration: none;">
+      <button style="padding: 8px 16px; font-size: 0.95rem;">⌂ ACCUEIL HUB</button>
+    </a>
+  </div>
+  <div class="subtitle">LE GRAND QUIZ DES SUPER-HÉROS</div>
+  <h1>ARROWVERSE</h1>
+  <div class="subtitle">QUI SUIS-JE ?</div>
+</header>
+
+<main class="page">
+
+<section id="home">
+  <div class="panel">
+    <h2>BIENVENUE DANS LE MULTIVERS</h2>
+
+    <p style="color:var(--light)">
+      32 personnages. 32 manches.
+      Sauras-tu tous les reconnaître ?
+    </p>
+
+    <h3 style="color:var(--neon)">RÈGLES DU JEU</h3>
+
+    <div class="rules">
+      • 32 personnages à découvrir.<br>
+      • Palier 1 : image très pixelisée.<br>
+      • Palier 2 : image moyennement pixelisée.<br>
+      • Palier 3 : image légèrement pixelisée.<br>
+      • Palier 4 : image nette et révélation du personnage.<br>
+      • 20 secondes de chrono par palier (désactivé au palier 4).<br>
+      • Ordre aléatoire à chaque partie.<br>
+      • Passe à la manche suivante après chaque révélation.
+    </div>
+
+    <br>
+    <button onclick="startGame()">COMMENCER LA PARTIE</button>
+  </div>
+</section>
+
+<section id="game" class="hidden">
+
+  <div class="topbar">
+    <button onclick="goHome()">⌂ MENU INTERNE</button>
+    <span id="roundLabel">MANCHE 1 / 32</span>
+  </div>
+
+  <div class="progress">
+    <div id="progressBar"></div>
+  </div>
+
+  <h2>QUI SUIS-JE ?</h2>
+  <p id="stageLabel">PALIER 1 - TRÈS PIXELISÉ</p>
+  
+  <!-- Élément Chronomètre -->
+  <div id="timerDisplay">Temps restant : 20s</div>
+
+  <div id="portrait" class="portrait">
+    <img id="characterImage" src="" alt="Personnage mystère">
+    <canvas id="pixelCanvas"></canvas>
+  </div>
+
+  <div id="characterName" class="hidden"></div>
+  <div id="seriesName" class="hidden"></div>
+
+  <div id="imageError" class="hidden" style="color:#ff9999">
+    Impossible de charger cette image ou de la traiter.
+    Vérifie le lien ou les autorisations du serveur d'images.
+  </div>
+
+  <div class="controls">
+    <button id="nextStage" onclick="advanceStage()">
+      PASSER AU PALIER 2
+    </button>
+
+    <button id="nextRound" class="hidden" onclick="nextCharacter()">
+      MANCHE SUIVANTE →
+    </button>
+  </div>
+
+</section>
+
+<section id="finish" class="hidden">
+  <div class="panel">
+    <h2>FÉLICITATIONS !</h2>
+    <h1>32 / 32</h1>
+    <p>Tu as découvert tous les personnages !</p>
+    <button onclick="startGame()">REJOUER</button>
+    <a href="index.html" style="text-decoration: none; margin-left: 10px;">
+      <button>ACCUEIL HUB</button>
+    </a>
+  </div>
+</section>
+
+</main>
+
+<button id="reset" onclick="resetGame()">↻ RESET</button>
+
+<footer>
+  ARROWVERSE • QUI SUIS-JE ? • JEU FAN-MADE
+</footer>
+
+<script>
+
+/* ==================================
+   LISTE DES 32 PERSONNAGES
+================================== */
+
+const characters = [
+
+  {
+    name: "Oliver Queen",
+    series: "Arrow",
+    image: "https://serieously.ouest-france.fr/app/uploads/2022/04/collage-sans-titre-78-min.jpg?width=768&height=432&fit=cover"
+  },
+
+  {
+    name: "Felicity Smoak",
+    series: "Arrow",
+    image: "https://pbs.twimg.com/media/FFOclyFWUAMtPOV?format=webp&name=large"
+  },
+
+  {
+    name: "John Diggle",
+    series: "Arrow",
+    image: "https://static.dc.com/sites/default/files/imce/2019/12-DEC/source-AR805B0270b_5de5f0013127c0.82918904.jpg"
+  },
+
+  {
+    name: "Thea Queen",
+    series: "Arrow",
+    image: "https://www.critictoo.com/wp-content/uploads/2019/09/Willa-Holland-Thea-Queen-Arrow-Saison-6.jpg"
+  },
+
+  {
+    name: "Roy Harper",
+    series: "Arrow",
+    image: "https://fr.web.img4.acsta.net/newsv7/19/08/09/10/30/4765130.jpg"
+  },
+
+  {
+    name: "Slade Wilson",
+    series: "Arrow",
+    image: "https://static.wikia.nocookie.net/arrow/images/e/e9/Deathstroke.png/revision/latest?cb=20170525143503"
+  },
+
+  {
+    name: "Barry Allen",
+    series: "The Flash",
+    image: "https://static0.moviewebimages.com/wordpress/wp-content/uploads/2023/03/grant-gustin-the-flash.jpeg"
+  },
+
+  {
+    name: "Iris West",
+    series: "The Flash",
+    image: "https://www.washingtonpost.com/wp-apps/imrs.php?src=http://www.washingtonpost.com/news/comic-riffs/wp-content/uploads/sites/15/2018/01/FLA220b_0079b.jpg&w=1440"
+  },
+
+  {
+    name: "Cisco Ramon",
+    series: "The Flash",
+    image: "https://www.comicbasics.com/wp-content/uploads/2023/05/what-happened-to-cisco-in-the-flash.jpg"
+  },
+
+  {
+    name: "Caitlin Snow",
+    series: "The Flash",
+    image: "https://www.tvline.com/tvline/casting-news/the-flash-season-7-caitlin-exit-danielle-panabaker-maternity-leave-1198175/flash-6x15-frost.jpg"
+  },
+
+  {
+    name: "Joe West",
+    series: "The Flash",
+    image: "https://www.premiere.fr/sites/default/files/styles/scale_crop_1280x720/public/2019-01/Jesse-L-Martin-in-The-Flash.jpg"
+  },
+
+  {
+    name: "Eobard Thawne",
+    series: "The Flash",
+    image: "https://static.wikia.nocookie.net/marvel_dc/images/5/51/Eobard_Thawne_Arrow_Earth-X.jpg/revision/latest/scale-to-width-down/732?cb=20180211193235"
+  },
+
+  {
+    name: "Kara Danvers",
+    series: "Supergirl",
+    image: "https://a1cf74336522e87f135f-2f21ace9a6cf0052456644b80fa06d4f.ssl.cf2.rackcdn.com/images/characters/large/800/Kate-Danvers.Supergirl.webp"
+  },
+
+  {
+    name: "Alex Danvers",
+    series: "Supergirl",
+    image: "https://www.kryptonsite.com/wp-content/uploads/2018/04/SPG317b_0013b.jpg"
+  },
+
+  {
+    name: "J'onn J'onzz",
+    series: "Supergirl",
+    image: "https://static.wikia.nocookie.net/arrow/images/1/15/Martian_Manhunter.png/revision/latest/scale-to-width-down/1200?cb=20211025192834"
+  },
+
+  {
+    name: "Lena Luthor",
+    series: "Supergirl",
+    image: "https://static.wikia.nocookie.net/marvel_dc/images/8/89/Lena_Luthor_Arrow_Earth-38_0003.jpg/revision/latest?cb=20191121144612"
+  },
+
+  {
+    name: "Sara Lance",
+    series: "Legends of Tomorrow",
+    image: "https://www.looper.com/img/gallery/sara-lances-entire-arrowverse-backstory-explained/intro-1581529635.jpg"
+  },
+
+  {
+    name: "Ray Palmer",
+    series: "Legends of Tomorrow",
+    image: "https://static0.moviewebimages.com/wordpress/wp-content/uploads/article/UYKFvwQqGNOy4RVKvgARNxWLQixgtg.jpg"
+  },
+
+  {
+    name: "Mick Rory",
+    series: "Legends of Tomorrow",
+    image: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2018/03/Dominic-Purcell-as-Heat-Wave-on-Legends-of-Tomorrow.jpg?q=50&fit=crop&w=825&dpr=1.5"
+  },
+
+  {
+    name: "Zari Tomaz",
+    series: "Legends of Tomorrow",
+    image: "https://static.wikia.nocookie.net/arrow/images/8/82/Zari_Tarazi.png/revision/latest/scale-to-width-down/1200?cb=20241112030153"
+  },
+
+  {
+    name: "Jefferson Pierce",
+    series: "Black Lightning",
+    image: "https://variety.com/wp-content/uploads/2018/01/blk101d_0100r1-e1516202479374.jpg?crop=0px%2C25px%2C1000px%2C563px&resize=1000%2C563"
+  },
+
+  {
+    name: "Anissa Pierce",
+    series: "Black Lightning",
+    image: "https://sm.ign.com/ign_fr/news/b/black-ligh/black-lightning-first-look-at-superhero-thunder_u2zk.png"
+  },
+
+  {
+    name: "Clark Kent",
+    series: "Supergirl",
+    image: "https://www.programme-tv.net/imgre/fit/http.3A.2F.2Fprd2-bone-image.2Es3-website-eu-west-1.2Eamazonaws.2Ecom.2Ftel.2F2019.2F10.2F02.2F0455b889-5a88-43b8-93d3-5e656bca7821.2Ejpeg/1200x900/crop-from/top/quality/80/arrowverse-la-photo-insolite-de-deux-des-superman-de-la-serie-sur-le-meme-tournage.jpg"
+  },
+
+  {
+    name: "Lois Lane",
+    series: "Superman & Lois",
+    image: "https://www.femmesdeseries.com/wp-content/uploads/2024/12/SMLS2_BitsieTulloch_NM_120521_SEAMLESS_2555r-e1645045933832.jpg"
+  },
+
+  {
+    name: "John Constantine",
+    series: "Legends of Tomorrow",
+    image: "https://www.hollywoodreporter.com/wp-content/uploads/2015/05/constantine_s01e01_still.jpg"
+  },
+
+  {
+    name: "Wally West",
+    series: "The Flash",
+    image: "https://www.hollywoodreporter.com/wp-content/uploads/2016/07/kid_flash_publicity.jpg"
+  },
+
+  {
+    name: "Laurel Lance",
+    series: "Arrow",
+    image: "https://heroichollywood.com/wp-content/uploads/2015/10/Arrow402-12.jpg"
+  },
+
+  {
+    name: "Mon-El",
+    series: "Supergirl",
+    image: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2019/01/Supergirl-Mon-El.jpeg?w=1200&h=628&fit=crop"
+  },
+
+  {
+    name: "Brainiac 5",
+    series: "Supergirl",
+    image: "https://deadline.com/wp-content/uploads/2018/06/jesse-rath-brainiac-20.jpg"
+  },
+
+  {
+    name: "Nora West-Allen",
+    series: "The Flash",
+    image: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2019/03/The-Flash-Nora-XS-feature.jpg"
+  },
+
+  {
+    name: "Damien Darhk",
+    series: "Arrow",
+    image: "https://static.wikia.nocookie.net/arrow/images/b/b5/Damien_Darhk.png/revision/latest?cb=20230522231125"
+  },
+
+  {
+    name: "Prometheus",
+    series: "Arrow",
+    image: "https://static.wikia.nocookie.net/arrow/images/f/f6/Prometheus_suit.png/revision/latest/scale-to-width-down/1200?cb=20170128144941"
+  }
+
+];
+
+/* ==================================
+   FONCTIONNEMENT DU JEU
+================================== */
+
+let order = [];
+let current = 0;
+let stage = 1;
+
+let timerInterval = null;
+let timeLeft = 20;
+
+const pixelSizes = {
+  1: 28,
+  2: 16,
+  3: 7,
+  4: 1
+};
+
+function shuffle(array) {
+  const result = [...array];
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  return result;
+}
+
+/* ==================================
+   CHRONOMÈTRE
+================================== */
+
+function startTimer() {
+  clearInterval(timerInterval);
+  
+  const timerDisplay = document.getElementById("timerDisplay");
+
+  // Si on est au palier 4 (image entièrement révélée), on masque le chrono
+  if (stage === 4) {
+    timerDisplay.classList.add("hidden");
+    return;
+  }
+
+  // Sinon, on affiche et lance le chrono (les boutons restent cliquables)
+  timeLeft = 20;
+  timerDisplay.classList.remove("hidden");
+  timerDisplay.textContent = `Temps restant : ${timeLeft}s`;
+  timerDisplay.classList.remove("blink-danger");
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+
+    if (timeLeft > 5) {
+      timerDisplay.textContent = `Temps restant : ${timeLeft}s`;
+    } else if (timeLeft > 0) {
+      timerDisplay.textContent = `Temps restant : ${timeLeft}s`;
+      timerDisplay.classList.add("blink-danger");
+    } else {
+      // Temps écoulé
+      clearInterval(timerInterval);
+      timerDisplay.textContent = "Temps écoulé !";
+      timerDisplay.classList.remove("blink-danger");
+    }
+  }, 1000);
+}
+
+/* ==================================
+   PIXELLISATION DU PERSONNAGE
+================================== */
+
+function drawPixelated(img, pixelSize) {
+  const canvas = document.getElementById("pixelCanvas");
+  const ctx = canvas.getContext("2d");
+
+  if (!img.complete || !img.naturalWidth) return;
+
+  const width = canvas.width;
+  const height = canvas.height;
+
+  const imageRatio = img.naturalWidth / img.naturalHeight;
+  const canvasRatio = width / height;
+
+  let sx = 0;
+  let sy = 0;
+  let sw = img.naturalWidth;
+  let sh = img.naturalHeight;
+
+  if (imageRatio > canvasRatio) {
+    sw = img.naturalHeight * canvasRatio;
+    sx = (img.naturalWidth - sw) / 2;
+  } else {
+    sh = img.naturalWidth / canvasRatio;
+    sy = (img.naturalHeight - sh) / 2;
+  }
+
+  const smallWidth = Math.max(1, Math.ceil(width / pixelSize));
+  const smallHeight = Math.max(1, Math.ceil(height / pixelSize));
+
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = smallWidth;
+  tempCanvas.height = smallHeight;
+
+  const tempCtx = tempCanvas.getContext("2d");
+
+  tempCtx.imageSmoothingEnabled = true;
+
+  tempCtx.drawImage(
+    img,
+    sx, sy, sw, sh,
+    0, 0, smallWidth, smallHeight
+  );
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.imageSmoothingEnabled = false;
+
+  ctx.drawImage(
+    tempCanvas,
+    0, 0, smallWidth, smallHeight,
+    0, 0, width, height
+  );
+}
+
+function updatePortrait() {
+  const img = document.getElementById("characterImage");
+  const canvas = document.getElementById("pixelCanvas");
+
+  if (!img.complete || !img.naturalWidth) return;
+
+  try {
+    drawPixelated(img, pixelSizes[stage]);
+    document.getElementById("imageError").classList.add("hidden");
+  } catch (error) {
+    console.error("Erreur de pixellisation :", error);
+    document.getElementById("imageError").classList.remove("hidden");
+  }
+}
+
+/* ==================================
+   DÉMARRAGE
+================================== */
+
+function startGame() {
+  if (characters.length !== 32) {
+    alert("Il faut exactement 32 personnages !");
+    return;
+  }
+
+  order = shuffle(characters);
+  current = 0;
+  stage = 1;
+
+  document.getElementById("home").classList.add("hidden");
+  document.getElementById("finish").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+  document.getElementById("reset").classList.remove("hidden");
+
+  updateGame();
+}
+
+/* ==================================
+   ACTUALISATION DU JEU
+================================== */
+
+function updateGame() {
+  const character = order[current];
+
+  document.getElementById("roundLabel").textContent =
+    `MANCHE ${current + 1} / 32`;
+
+  document.getElementById("progressBar").style.width =
+    `${((current + 1) / 32) * 100}%`;
+
+  const labels = {
+    1: "PALIER 1 - TRÈS PIXELISÉ",
+    2: "PALIER 2 - PIXELISATION MOYENNE",
+    3: "PALIER 3 - LÉGÈREMENT PIXELISÉ",
+    4: "PALIER 4 - IMAGE NETTE"
+  };
+
+  document.getElementById("stageLabel").textContent =
+    labels[stage];
+
+  const portrait = document.getElementById("portrait");
+
+  portrait.className =
+    "portrait" + (stage === 4 ? " revealed" : "");
+
+  const img = document.getElementById("characterImage");
+
+  document.getElementById("imageError").classList.add("hidden");
+
+  img.onload = function() {
+    updatePortrait();
+  };
+
+  img.onerror = function() {
+    document.getElementById("imageError").classList.remove("hidden");
+  };
+
+  if (img.dataset.currentImage !== character.image) {
+    img.dataset.currentImage = character.image;
+    img.src = character.image;
+  } else if (img.complete && img.naturalWidth > 0) {
+    updatePortrait();
+  }
+
+  document.getElementById("characterName").textContent =
+    character.name;
+
+  document.getElementById("seriesName").textContent =
+    character.series;
+
+  document.getElementById("characterName").classList.toggle(
+    "hidden", stage !== 4
+  );
+
+  document.getElementById("seriesName").classList.toggle(
+    "hidden", stage !== 4
+  );
+
+  const nextStage = document.getElementById("nextStage");
+  const nextRound = document.getElementById("nextRound");
+
+  nextStage.textContent =
+    stage === 1 ? "PASSER AU PALIER 2" :
+    stage === 2 ? "PASSER AU PALIER 3" :
+    stage === 3 ? "PASSER AU PALIER 4" : "";
+
+  nextStage.classList.toggle("hidden", stage === 4);
+  nextRound.classList.toggle("hidden", stage !== 4);
+
+  nextRound.textContent =
+    current === 31 ? "TERMINER LA PARTIE" :
+    "MANCHE SUIVANTE →";
+
+  const game = document.getElementById("game");
+
+  game.style.animation = "none";
+  void game.offsetWidth;
+  game.style.animation = "appear .5s ease";
+
+  updatePortrait();
+
+  // Lancer ou masquer le chronomètre selon le palier
+  startTimer();
+}
+
+/* ==================================
+   PASSAGE AUX PALIERS
+================================== */
+
+function advanceStage() {
+  if (stage < 4) {
+    stage++;
+    updateGame();
+  }
+}
+
+/* ==================================
+   PERSONNAGE SUIVANT
+================================== */
+
+function nextCharacter() {
+  if (current < 31) {
+    current++;
+    stage = 1;
+    updateGame();
+  } else {
+    clearInterval(timerInterval);
+    document.getElementById("game").classList.add("hidden");
+    document.getElementById("finish").classList.remove("hidden");
+  }
+}
+
+/* ==================================
+   RETOUR À L'ACCUEIL
+================================== */
+
+function goHome() {
+  clearInterval(timerInterval);
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("finish").classList.add("hidden");
+  document.getElementById("home").classList.remove("hidden");
+}
+
+/* ==================================
+   RESET
+================================== */
+
+function resetGame() {
+  clearInterval(timerInterval);
+  order = [];
+  current = 0;
+  stage = 1;
+  goHome();
+}
+
+</script>
+
+</body>
+</html>

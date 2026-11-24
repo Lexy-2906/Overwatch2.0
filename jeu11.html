@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Tier List 32 Personnages (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.85);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px #00f5ff;
+            transform: scale(1.02);
+        }
+
+        /* Style des lignes de Tier */
+        .tier-row {
+            display: flex;
+            min-height: 105px;
+            border: 1px solid rgba(0, 255, 102, 0.3);
+            margin-bottom: 8px;
+            background: rgba(1, 12, 5, 0.9);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .tier-label {
+            width: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            flex-shrink: 0;
+        }
+        .tier-dropzone {
+            flex-grow: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px;
+            align-content: flex-start;
+            min-height: 105px;
+        }
+
+        /* Cartes de personnages en mode portrait */
+        .char-card {
+            width: 65px;
+            height: 85px;
+            border: 1px solid #00ff66;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #000;
+            position: relative;
+            box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+            cursor: grab;
+        }
+        .char-card:active {
+            cursor: grabbing;
+        }
+        .char-card img {
+            width: 100%;
+            height: 65px;
+            object-fit: cover;
+            object-position: top;
+            cursor: pointer;
+        }
+
+        /* Nom du perso avec défilement si trop long */
+        .char-name-container {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 20px;
+            background: rgba(1, 8, 3, 0.95);
+            overflow: hidden;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+        }
+        .char-name-scroll {
+            display: inline-block;
+            font-size: 0.55rem;
+            color: #fff;
+            padding-left: 100%;
+            animation: marquee 8s linear infinite;
+        }
+        .char-card:hover .char-name-scroll {
+            animation-play-state: running;
+        }
+
+        @keyframes marquee {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+
+        /* Modal Grand Format (Lightbox) */
+        #lightboxModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(1, 8, 3, 0.92);
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            cursor: pointer;
+        }
+        #lightboxModal.active {
+            display: flex;
+        }
+        .lightbox-content {
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 40px rgba(0, 255, 102, 0.5);
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 90vw;
+            max-height: 80vh;
+            text-align: center;
+        }
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 65vh;
+            object-fit: contain;
+            border: 1px solid rgba(0, 255, 102, 0.3);
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- Modal Grand Format (Lightbox) -->
+    <div id="lightboxModal" onclick="closeLightbox()">
+        <div class="lightbox-content" onclick="event.stopPropagation()">
+            <img id="lightboxImg" src="" alt="Zoom Perso">
+            <div id="lightboxTitle" class="text-[#00ff66] font-bold text-lg mt-3 uppercase tracking-wider"></div>
+            <p class="text-xs text-[#00ff66]/50 mt-1">[ CLIQUEZ N'IMPORTE OÙ POUR FERMER ]</p>
+        </div>
+    </div>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-25 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-house"></i>
+                <span class="hidden sm:inline">ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-layer-group animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow uppercase">
+                        TIER LIST // ARROWVERSE
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60">MODULE DE CLASSEMENT HOLOGRAPHIQUE</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="resetTierList()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">RÉINITIALISER</span>
+            </button>
+            <button onclick="toggleAudio()" id="audioBtn" class="cyber-btn px-3 py-2 rounded-lg text-xs flex items-center space-x-2">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                <span class="hidden sm:inline">SFX: OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-5xl mx-auto w-full relative z-10 my-4">
+
+        <!-- Écran d'accueil / Règles -->
+        <div id="startScreen" class="text-center w-full max-w-2xl holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-users-viewfinder text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                TIER LIST // 32 PERSONNAGES
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base">
+                [CONSOLE OVERWATCH] — Organisez les 32 figures emblématiques de l'Arrowverse de la catégorie S à D selon vos critères.
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left">
+                <h3 class="text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-terminal mr-2"></i> RÈGLES DU PROTOCOLE</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Glissez-déposez les cartes en mode portrait dans les lignes de classement (S, A, B, C, D).</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour voter et classer les personnages avec le chat.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Cliquez sur l'image</strong> d'un personnage pour l'afficher en grand format.</li>
+                </ul>
+            </div>
+
+            <button onclick="startApp()" class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest">
+                CHARGER LA TIER LIST <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Écran de la Tier List -->
+        <div id="appScreen" class="w-full hidden flex flex-col space-y-4">
+            
+            <!-- Alerte de sondage clignotante -->
+            <div class="text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse mb-1">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <!-- Conteneur des Tiers (S à D) -->
+            <div class="w-full holo-frame p-4 rounded-xl">
+                <!-- S Tier -->
+                <div class="tier-row">
+                    <div class="tier-label bg-red-600 text-white">S</div>
+                    <div class="tier-dropzone" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+                </div>
+                <!-- A Tier -->
+                <div class="tier-row">
+                    <div class="tier-label bg-orange-500 text-white">A</div>
+                    <div class="tier-dropzone" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+                </div>
+                <!-- B Tier -->
+                <div class="tier-row">
+                    <div class="tier-label bg-yellow-500 text-black">B</div>
+                    <div class="tier-dropzone" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+                </div>
+                <!-- C Tier -->
+                <div class="tier-row">
+                    <div class="tier-label bg-green-600 text-white">C</div>
+                    <div class="tier-dropzone" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+                </div>
+                <!-- D Tier -->
+                <div class="tier-row">
+                    <div class="tier-label bg-blue-600 text-white">D</div>
+                    <div class="tier-dropzone" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+                </div>
+            </div>
+
+            <!-- Réserve de personnages (Pool de départ) -->
+            <div class="holo-frame p-4 rounded-xl">
+                <h3 class="text-xs uppercase tracking-widest text-[#00ff66]/70 mb-3"><i class="fa-solid fa-box-archive mr-2"></i> BANQUE DE PERSONNAGES (À CLASSER) :</h3>
+                <div id="characterPool" class="tier-dropzone min-h-[110px] bg-black/40 rounded-lg p-2 border border-[#003b13]" ondragover="allowDrop(event)" ondrop="drop(event)">
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10">
+        OVERWATCH PROTOCOL // ARROWVERSE TIER LIST SYSTEM
+    </footer>
+
+    <script>
+        // Matrix Rain
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        // Audio Synth
+        let audioEnabled = false;
+        let synth = null;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+            }
+        }
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const btn = document.getElementById('audioBtn');
+            if (audioEnabled) {
+                Tone.start();
+                initAudio();
+                icon.className = "fa-solid fa-volume-high";
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span class="hidden sm:inline">SFX: ON</span>';
+            } else {
+                icon.className = "fa-solid fa-volume-xmark";
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i><span class="hidden sm:inline">SFX: OFF</span>';
+            }
+        }
+        function playTone(note = "A4") {
+            if (!audioEnabled || !synth) return;
+            try { synth.triggerAttackRelease(note, "16n"); } catch(e) {}
+        }
+
+        // Liste des 32 personnages de l'Arrowverse
+        const charactersData = [
+            { id: "char-1", name: "Oliver Queen - Green Arrow", img: "https://static.wikia.nocookie.net/heroes-fr/images/3/3e/Oliver_Queen_Arrow_005.png/revision/latest?cb=20200827093753&path-prefix=fr" },
+            { id: "char-2", name: "Felicity Smoak - Overwatch", img: "https://figurinepop.com/public/2017/08/felicity1_1.jpg" },
+            { id: "char-3", name: "John Diggle - Spartan", img: "https://static.wikia.nocookie.net/arrow-france/images/7/78/Arrow-Season-4-John-Diggle-Suit1.jpg/revision/latest?cb=20151027113639&path-prefix=fr" },
+            { id: "char-4", name: "Barry Allen - The Flash", img: "https://static.wikia.nocookie.net/heroes-fr/images/f/f8/Barry_Allen_Arrowverse_Grant_Gustin.png/revision/latest?cb=20200704120248&path-prefix=fr" },
+            { id: "char-5", name: "Sara Lance - White Canary", img: "https://static.wikia.nocookie.net/marvel_dc/images/b/bb/Sara_Lance_Arrow_0004.jpg/revision/latest?cb=20190625235534" },
+            { id: "char-6", name: "Slade Wilson - Deathstroke", img: "https://static.wikia.nocookie.net/book-of-heroes-and-villains/images/8/82/Deathstroke_Arrowverse.jpg/revision/latest?cb=20211205232222" },
+            { id: "char-7", name: "Thea Queen - Speedy", img: "https://static.wikia.nocookie.net/characters-of-fiction/images/4/42/Arrow-S4-Speedy_%281%29.jpg/revision/latest?cb=20220525203551" },
+            { id: "char-8", name: "Laurel Lance - Black Canary", img: "https://static.wikia.nocookie.net/arrow-france/images/5/5b/BC.jpg/revision/latest?cb=20150802102306&path-prefix=fr" },
+            { id: "char-9", name: "Quentin Lance", img: "https://static.wikia.nocookie.net/arrow-france/images/c/cf/14.Arrow-Brothers_in_Arms-Quentin_Lance.jpg/revision/latest?cb=20180402234651&path-prefix=fr" },
+            { id: "char-10", name: "Roy Harper - Arsenal", img: "https://i.pinimg.com/736x/2d/4b/8e/2d4b8eabe2d037c0db31c00d0701cc3d.jpg" },
+            { id: "char-11", name: "Caitlin Snow - Killer Frost", img: "https://m.media-amazon.com/images/M/MV5BN2EwMzhjNmUtMmUxMi00NGI0LThhOWItY2IyY2Y3NmE3YzljXkEyXkFqcGc@._V1_.jpg" },
+            { id: "char-12", name: "Leonard Snart - Captain Cold", img: "https://static.wikia.nocookie.net/heroes-and-villain/images/e/ee/Captain_Cold.jpg/revision/latest?cb=20220111153603" },
+            { id: "char-13", name: "Ray Palmer - The Atom", img: "https://static.wikia.nocookie.net/arrow-france/images/f/ff/ATOM.jpg/revision/latest?cb=20150203203756&path-prefix=fr" },
+            { id: "char-14", name: "Nyssa al Ghul", img: "https://static.wikia.nocookie.net/heros/images/8/8a/Nyssa_al_Ghul_Infobox.png/revision/latest?cb=20201119142910&path-prefix=fr" },
+            { id: "char-15", name: "Ra's al Ghul", img: "https://static.wikia.nocookie.net/arrow-france/images/8/84/RAG.png/revision/latest?cb=20150424085918&path-prefix=fr" },
+            { id: "char-16", name: "Damien Darhk", img: "https://static.wikia.nocookie.net/arrow/images/b/b5/Damien_Darhk.png/revision/latest?cb=20180611023734&path-prefix=es" },
+            { id: "char-17", name: "Malcolm Merlyn - Dark Archer", img: "https://static.wikia.nocookie.net/heros/images/d/de/Malcolm_Merlyn_Arrow_Infobox.jpg/revision/latest?cb=20201017160135&path-prefix=fr" },
+            { id: "char-18", name: "Mon-El - Valor", img: "https://static.wikia.nocookie.net/arrow-france/images/6/6d/DTCKwE8W4AAHiqY.jpg/revision/latest?cb=20180108182529&path-prefix=fr" },
+            { id: "char-19", name: "Rene Ramirez - Wild Dog", img: "https://i.pinimg.com/474x/47/be/c6/47bec6eb59f62fdb9da30636b6ed6cc1.jpg" },
+            { id: "char-20", name: "Ricardo Diaz", img: "https://static.wikia.nocookie.net/arrow-france/images/5/5b/4.Arrow-The_Dragon-Ricardo_Diaz.jpg/revision/latest?cb=20180412170546&path-prefix=fr" },
+            { id: "char-21", name: "Emiko Queen", img: "https://static.wikia.nocookie.net/villains/images/0/05/Emiko_Queen.jpg/revision/latest?cb=20190508035140" },
+            { id: "char-22", name: "Mia Smoak", img: "https://static.wikia.nocookie.net/arrow-france/images/2/2b/3.Arrow-Green_Arrow_and_the_Canaries_Green_Arrow_II.jpeg/revision/latest?cb=20200114145606&path-prefix=fr" },
+            { id: "char-23", name: "William Clayton", img: "https://static.wikia.nocookie.net/arrow-france/images/2/22/William_Clayton_Arrow_0002.jpg/revision/latest/scale-to-width-down/1200?cb=20191129203102&path-prefix=fr" },
+            { id: "char-24", name: "Adrian Chase - Prometheus", img: "https://static.wikia.nocookie.net/arrow-france/images/9/95/Prometheus_2.jpg/revision/latest?cb=20180402112503&path-prefix=fr" },
+            { id: "char-25", name: "John Constantine", img: "https://static.wikia.nocookie.net/arrow-france/images/f/f7/5.LOT-The_Eggplant%2C_The_Witch_%26_The_Wardrobe-Constantine.jpg/revision/latest?cb=20190411192410&path-prefix=fr" },
+            { id: "char-26", name: "Kara Danvers - Supergirl", img: "https://static.wikia.nocookie.net/arrow-france/images/3/30/SUPERGIRL_200_002.jpg/revision/latest?cb=20161102041811&path-prefix=fr" },
+            { id: "char-27", name: "Cisco Ramon - Vibe", img: "https://i.pinimg.com/474x/19/af/c9/19afc9a6038b5525a068bf9859aaa166.jpg" },
+            { id: "char-28", name: "Jefferson Jackson - Firestorm", img: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2019/06/Firestorm.jpg" },
+            { id: "char-29", name: "Mick Rory - Heat Wave", img: "https://static.wikia.nocookie.net/villains/images/2/2d/78c7386cb261a379943675c72a17ceb0.jpg/revision/latest?cb=20180617014515" },
+            { id: "char-30", name: "Hunter Zolomon - Zoom", img: "https://www.williamjacket.com/wp-content/uploads/2024/11/Zoom-Hunter-Zolomon-Jacket-frontt.webp" },
+            { id: "char-31", name: "Wally West - Kid Flash", img: "https://variety.com/wp-content/uploads/2016/07/kid_flash_publicity.jpg" },
+            { id: "char-32", name: "Mar Novu - The Monitor", img: "https://cdn.tvfanatic.com/uploads/2019/11/the-monitor-elseworlds-part-2-arrow-s7e9.jpg" }
+        ];
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startApp() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            playTone("G4");
+            loadCharacters();
+        }
+
+        function resetTierList() {
+            document.getElementById('appScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            playTone("C4");
+        }
+
+        function openLightbox(imgSrc, name) {
+            document.getElementById('lightboxImg').src = imgSrc;
+            document.getElementById('lightboxTitle').innerText = name;
+            document.getElementById('lightboxModal').classList.add('active');
+            playTone("B4");
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightboxModal').classList.remove('active');
+            playTone("C4");
+        }
+
+        function loadCharacters() {
+            const pool = document.getElementById('characterPool');
+            const tiers = document.querySelectorAll('.tier-dropzone');
+            
+            tiers.forEach(zone => zone.innerHTML = '');
+
+            const randomizedChars = shuffle(charactersData);
+
+            randomizedChars.forEach(c => {
+                const card = document.createElement('div');
+                card.className = "char-card";
+                card.draggable = true;
+                card.id = c.id + "-" + Math.random().toString(36).substr(2, 5);
+                
+                card.innerHTML = `
+                    <img src="${c.img}" alt="${c.name}" onclick="openLightbox('${c.img}', '${c.name.replace(/'/g, "\\'")}')" title="Cliquer pour agrandir">
+                    <div class="char-name-container">
+                        <span class="char-name-scroll">${c.name} &nbsp;&nbsp;&nbsp;&nbsp; ${c.name}</span>
+                    </div>
+                `;
+
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', card.id);
+                    playTone("A4");
+                });
+
+                pool.appendChild(card);
+            });
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const cardId = ev.dataTransfer.getData('text/plain');
+            const card = document.getElementById(cardId);
+            
+            let targetZone = ev.target;
+            if (!targetZone.classList.contains('tier-dropzone')) {
+                targetZone = targetZone.closest('.tier-dropzone');
+            }
+
+            if (targetZone && card) {
+                targetZone.appendChild(card);
+                playTone("E5");
+            }
+        }
+    </script>
+</body>
+</html>

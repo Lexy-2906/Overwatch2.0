@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Le Devin // 4 Indices (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden; /* Empêche tout scroll global */
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.9);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.25), inset 0 0 10px rgba(0, 255, 102, 0.1);
+            backdrop-filter: blur(8px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 8px rgba(0, 255, 102, 0.8), 0 0 15px rgba(0, 255, 102, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 15px #00f5ff;
+            transform: scale(1.02);
+        }
+
+        @keyframes flashRed {
+            0%, 100% { color: #ff0033; text-shadow: 0 0 10px #ff0033; transform: scale(1); }
+            50% { color: #ffffff; text-shadow: 0 0 15px #ff0033; transform: scale(1.05); }
+        }
+
+        .blink-danger {
+            animation: flashRed 0.5s infinite ease-in-out;
+        }
+
+        .clue-box {
+            background: rgba(0, 30, 10, 0.85);
+            border: 1px dashed #00ff66;
+        }
+
+        .fighter-img {
+            filter: contrast(110%) saturate(120%);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.4);
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-2 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <a href="index.html" class="cyber-btn px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-2 no-underline">
+                <i class="fa-solid fa-house"></i>
+                <span>ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-2">
+                <div class="bg-[#003b13] border border-[#00ff66] p-1.5 rounded-lg text-[#00ff66] font-bold text-base">
+                    <i class="fa-solid fa-masks-theater animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm md:text-lg font-bold tracking-wider text-[#00ff66] text-glow uppercase leading-tight">
+                        LE DEVIN // 4 INDICES
+                    </h1>
+                    <p class="text-[10px] text-[#00ff66]/60 leading-none">PROTOCOLE D'ANALYSE CRYPTOGRAPHIQUE</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleAudio()" id="audioBtn" class="cyber-btn px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1.5">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                <span class="hidden sm:inline">SFX: OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale optimisée pour tenir sans scroll -->
+    <main class="flex-grow flex flex-col items-center justify-center p-3 max-w-2xl mx-auto w-full relative z-10 overflow-hidden">
+
+        <!-- Écran d'accueil / Règles -->
+        <div id="startScreen" class="text-center w-full holo-frame p-6 rounded-xl shadow-2xl flex flex-col justify-center">
+            <div class="inline-block p-3 bg-[#003b13] rounded-full mx-auto mb-3 border border-[#00ff66]">
+                <i class="fa-solid fa-user-secret text-3xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="text-2xl md:text-3xl font-extrabold mb-2 text-[#00ff66] text-glow uppercase tracking-wider">
+                LE DEVIN // IDENTIFICATION MYSTÈRE
+            </h2>
+            <p class="text-[#00ff66]/70 mb-4 text-xs md:text-sm">
+                [CONSOLE OVERWATCH] — 32 personnages à deviner. 4 indices progressifs du plus obscur au plus évident.
+            </p>
+            
+            <div class="bg-[#020604]/90 p-4 rounded-lg border border-[#003b13] mb-5 text-left">
+                <h3 class="text-xs font-bold text-[#ffcc00] mb-2 uppercase"><i class="fa-solid fa-terminal mr-1.5"></i> RÈGLES DU PROTOCOLE</h3>
+                <ul class="space-y-1 text-xs text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-1.5"></i> 1 indice toutes les <strong>20 secondes</strong> (compte à rebours clignotant).</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-1.5"></i> Appuyez sur révéler dès que vous avez deviné.</li>
+                </ul>
+            </div>
+
+            <button onclick="startGame()" class="cyber-btn w-full py-3 text-base font-bold rounded-lg uppercase tracking-widest">
+                LANCER LE PROTOCOLE <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Écran du Jeu -->
+        <div id="gameScreen" class="w-full hidden flex flex-col space-y-3 holo-frame p-4 rounded-xl">
+            
+            <!-- Barre d'état -->
+            <div class="flex justify-between items-center border-b border-[#003b13] pb-2">
+                <div class="text-xs uppercase tracking-widest text-[#00ff66]/80 font-bold" id="roundCounter">
+                    MANCHE 1 / 32
+                </div>
+                <div class="flex items-center space-x-2 bg-black/60 px-2.5 py-0.5 rounded border border-[#00ff66]/40">
+                    <i class="fa-solid fa-stopwatch text-[#ffcc00] animate-pulse text-xs"></i>
+                    <span id="timerDisplay" class="font-bold text-[#ffcc00] text-sm">20s</span>
+                </div>
+            </div>
+
+            <!-- Liste des indices (Hauteur fixe compacte) -->
+            <div class="space-y-2 py-1 min-h-[140px] max-h-[160px] overflow-y-auto pr-1" id="cluesContainer">
+                <!-- Les indices injectés s'afficheront ici -->
+            </div>
+
+            <!-- Zone de Révélation (Intégrée proprement) -->
+            <div id="revealSection" class="hidden text-center bg-black/80 p-3 rounded-lg border border-[#00f5ff] flex flex-col items-center">
+                <h4 class="text-[10px] font-bold text-[#00f5ff] uppercase tracking-widest mb-1.5"><i class="fa-solid fa-unlock mr-1"></i> IDENTITÉ RÉVÉLÉE</h4>
+                <div class="flex items-center space-x-4 mb-2">
+                    <div class="w-20 h-20 rounded-lg overflow-hidden bg-black shrink-0">
+                        <img id="revealImg" src="" alt="" class="w-full h-full object-cover fighter-img">
+                    </div>
+                    <div class="text-left">
+                        <h3 id="revealName" class="text-lg md:text-xl font-black text-white text-glow uppercase leading-tight">Nom</h3>
+                        <p id="revealSeries" class="text-[11px] text-[#00ff66] font-mono uppercase tracking-wider">Série</p>
+                    </div>
+                </div>
+                <button onclick="nextCharacter()" class="cyber-btn w-full py-2 rounded-lg text-xs font-bold uppercase tracking-wider">
+                    MANCHE SUIVANTE <i class="fa-solid fa-arrow-right ml-1.5"></i>
+                </button>
+            </div>
+
+            <!-- Bouton pour forcer la révélation -->
+            <div class="pt-1 flex justify-center" id="revealBtnContainer">
+                <button onclick="revealIdentity()" class="cyber-btn w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider">
+                    <i class="fa-solid fa-eye mr-2"></i> RÉVÉLER LE PERSONNAGE
+                </button>
+            </div>
+        </div>
+
+        <!-- Écran de Fin -->
+        <div id="endScreen" class="text-center w-full holo-frame p-6 rounded-xl shadow-2xl hidden flex flex-col justify-center">
+            <div class="inline-block p-3 bg-[#003b13] rounded-full mx-auto mb-3 border border-[#00ff66]">
+                <i class="fa-solid fa-trophy text-4xl text-[#ffcc00] animate-bounce"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2 text-[#00ff66] text-glow uppercase tracking-wider">
+                PROTOCOLE TERMINÉ AVEC SUCCÈS
+            </h2>
+            <p class="text-sm text-white mb-5">
+                Vous avez traversé l'ensemble des 32 profils du multivers !
+            </p>
+            <div class="flex justify-center space-x-3">
+                <button onclick="startGame()" class="cyber-btn px-4 py-2.5 rounded-lg font-bold text-xs uppercase">
+                    RECOMMENCER <i class="fa-solid fa-rotate-right ml-1.5"></i>
+                </button>
+                <a href="index.html" class="cyber-btn px-4 py-2.5 rounded-lg font-bold text-xs uppercase flex items-center no-underline">
+                    RETOUR HUB <i class="fa-solid fa-house ml-1.5"></i>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bouton Reset Flottant -->
+    <button onclick="resetGame()" class="fixed right-4 bottom-4 cyber-btn px-3 py-2 rounded-lg text-[11px] flex items-center space-x-1.5 font-bold shadow-xl z-50">
+        <i class="fa-solid fa-rotate-right text-[#00ff66]"></i>
+        <span>RESET JEU</span>
+    </button>
+
+    <footer class="py-2 text-center text-[10px] text-[#00ff66]/40 border-t border-[#003b13] z-10 shrink-0">
+        OVERWATCH PROTOCOL // ARROWVERSE LE DEVIN
+    </footer>
+
+    <script>
+        // Matrix Rain
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        // Audio Synth
+        let audioEnabled = false;
+        let synth = null;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+            }
+        }
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const btn = document.getElementById('audioBtn');
+            if (audioEnabled) {
+                Tone.start();
+                initAudio();
+                icon.className = "fa-solid fa-volume-high";
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span class="hidden sm:inline">SFX: ON</span>';
+            } else {
+                icon.className = "fa-solid fa-volume-xmark";
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i><span class="hidden sm:inline">SFX: OFF</span>';
+            }
+        }
+        function playTone(note = "A4") {
+            if (!audioEnabled || !synth) return;
+            try { synth.triggerAttackRelease(note, "16n"); } catch(e) {}
+        }
+
+        // --- BASE DE 32 PERSONNAGES ---
+        const charactersDatabase = [
+            {
+                name: "Oliver Queen", series: "Arrow",
+                image: "https://serieously.ouest-france.fr/app/uploads/2022/04/collage-sans-titre-78-min.jpg?width=768&height=432&fit=cover",
+                clues: [
+                    "Indice 1 : Mon passé a été forgé dans un enfer insulaire de l'océan Pacifique.",
+                    "Indice 2 : J'ai passé cinq années loin de chez moi à survivre et à devenir une arme.",
+                    "Indice 3 : Mon nom est associé à une liste léguée par mon père.",
+                    "Indice 4 : Je suis le justicier encapuchonné originel connu sous le nom de Green Arrow."
+                ]
+            },
+            {
+                name: "Barry Allen", series: "The Flash",
+                image: "https://static0.moviewebimages.com/wordpress/wp-content/uploads/2023/03/grant-gustin-the-flash.jpeg",
+                clues: [
+                    "Indice 1 : Un événement climatique violent impliquant un accélérateur de particules a basculé ma vie.",
+                    "Indice 2 : Je suis expert de police scientifique au CPD avec un penchant prononcé pour le retard.",
+                    "Indice 3 : La Force Véloce coule dans mes veines à chaque foulée.",
+                    "Indice 4 : Je suis l'homme le plus rapide du monde, The Flash."
+                ]
+            },
+            {
+                name: "Kara Danvers", series: "Supergirl",
+                image: "https://a1cf74336522e87f135f-2f21ace9a6cf0052456644b80fa06d4f.ssl.cf2.rackcdn.com/images/characters/large/800/Kate-Danvers.Supergirl.webp",
+                clues: [
+                    "Indice 1 : J'ai échappé à la destruction d'une planète mourante dans une capsule de stase.",
+                    "Indice 2 : Je travaille sous couverture en tant qu'assistante timide dans un média de National City.",
+                    "Indice 3 : Un soleil jaune me confère des capacités surhumaines colossales.",
+                    "Indice 4 : Je porte le blason de la maison d'El sur ma poitrine en tant que Supergirl."
+                ]
+            },
+            {
+                name: "Sara Lance", series: "Legends of Tomorrow",
+                image: "https://www.looper.com/img/gallery/sara-lances-entire-arrowverse-backstory-explained/intro-1581529635.jpg",
+                clues: [
+                    "Indice 1 : J'ai survécu à un naufrage en mer avant d'être recueillie par une impitoyable ligue d'assassins.",
+                    "Indice 2 : Le Puits de Lazare m'a ramenée à la vie en altérant durablement mon âme.",
+                    "Indice 3 : J'ai pris le commandement d'un équipage de marginaux voyageant à travers les époques.",
+                    "Indice 4 : Je suis le capitaine du Waverider et la première Canary/White Canary."
+                ]
+            },
+            {
+                name: "Felicity Smoak", series: "Arrow",
+                image: "https://pbs.twimg.com/media/FFOclyFWUAMtPOV?format=webp&name=large",
+                clues: [
+                    "Indice 1 : Mes débuts se résumaient à un bureau exigu au département IT de Queen Consolidated.",
+                    "Indice 2 : Je parle très vite sous le coup du stress et ne filtre jamais mes réflexions.",
+                    "Indice 3 : Mon nom de code tactique est Overwatch depuis le QG numérique.",
+                    "Indice 4 : Je suis l'épouse d'Oliver Queen et la reine incontestée du piratage informatique."
+                ]
+            },
+            {
+                name: "Cisco Ramon", series: "The Flash",
+                image: "https://www.comicbasics.com/wp-content/uploads/2023/05/what-happened-to-cisco-in-the-flash.jpg",
+                clues: [
+                    "Indice 1 : Mes compétences en ingénierie m'ont permis de concevoir les équipements de toute la team.",
+                    "Indice 2 : J'ai la fâcheuse manie de donner des surnoms ridicules mais cultes à tous les criminels.",
+                    "Indice 3 : L'explosion de l'accélérateur m'a doté de capacités vibratoires interdimensionnelles.",
+                    "Indice 4 : Je suis le génie inventif et créateur de gadgets connu sous le nom de Vibe."
+                ]
+            },
+            {
+                name: "John Diggle", series: "Arrow",
+                image: "https://static.dc.com/sites/default/files/imce/2019/12-DEC/source-AR805B0270b_5de5f0013127c0.82918904.jpg",
+                clues: [
+                    "Indice 1 : Avant de porter un casque tactique, j'étais garde du corps professionnel en Afghanistan.",
+                    "Indice 2 : J'ai servi de boussole morale et de frère d'armes indéfectible pour le justicier de Star City.",
+                    "Indice 3 : Mon indicatif sur le terrain fait référence aux guerriers spartiates de l'Antiquité.",
+                    "Indice 4 : Je suis John Diggle, alias Spartan."
+                ]
+            },
+            {
+                name: "Slade Wilson", series: "Arrow",
+                image: "https://static.wikia.nocookie.net/arrow/images/e/e9/Deathstroke.png/revision/latest?cb=20170525143503",
+                clues: [
+                    "Indice 1 : J'ai autrefois partagé des missions de renseignement avec l'ASIS avant de débarquer sur une île.",
+                    "Indice 2 : Un sérum expérimental m'a offert une force surhumaine tout en corrompant mon esprit.",
+                    "Indice 3 : Je porte un masque tactique bicolore orange et noir orné d'un œil borgne.",
+                    "Indice 4 : Je suis le redoutable mercenaire Deathstroke."
+                ]
+            },
+            {
+                name: "Caitlin Snow", series: "The Flash",
+                image: "https://www.tvline.com/tvline/casting-news/the-flash-season-7-caitlin-exit-danielle-panabaker-maternity-leave-1198175/flash-6x15-frost.jpg",
+                clues: [
+                    "Indice 1 : Je suis bio-ingénieure de formation et j'ai perdu l'amour de ma vie lors de l'incident initial.",
+                    "Indice 2 : Une altération génétique sommeille en moi et se manifeste sous le coup de l'adrénaline.",
+                    "Indice 3 : Mes mains peuvent geler instantanément n'importe quel objet ou adversaire.",
+                    "Indice 4 : Je partage mon corps avec la redoutable alter ego glacée Killer Frost."
+                ]
+            },
+            {
+                name: "Ray Palmer", series: "Legends of Tomorrow",
+                image: "https://static0.moviewebimages.com/wordpress/wp-content/uploads/article/UYKFvwQqGNOy4RVKvgARNxWLQixgtg.jpg",
+                clues: [
+                    "Indice 1 : J'ai racheté une entreprise en faillite à Starling City pour la transformer en pôle technologique.",
+                    "Indice 2 : Je suis un physicien optimiste doté d'un doctorat en tout et pour tout.",
+                    "Indice 3 : J'ai miniaturisé la technologie de vol exosquelettique en alliage de nanite.",
+                    "Indice 4 : Je suis le milliardaire inventeur de l'armure ATOM."
+                ]
+            },
+            {
+                name: "Mick Rory", series: "Legends of Tomorrow",
+                image: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2018/03/Dominic-Purcell-as-Heat-Wave-on-Legends-of-Tomorrow.jpg?q=50&fit=crop&w=825&dpr=1.5",
+                clues: [
+                    "Indice 1 : Mon enfance difficile m'a conduit à développer une fascination morbide pour les incendies.",
+                    "Indice 2 : J'ai écumé les banques aux côtés d'un partenaire au pistolet givrant avant de changer de voie.",
+                    "Indice 3 : Je passe mon temps libre à brasser des romans de science-fiction sous un pseudonyme.",
+                    "Indice 4 : Je suis l'ancien pyromane des Lascars connu sous le nom de Heat Wave."
+                ]
+            },
+            {
+                name: "J'onn J'onzz", series: "Supergirl",
+                image: "https://static.wikia.nocookie.net/arrow/images/1/15/Martian_Manhunter.png/revision/latest/scale-to-width-down/1200?cb=20211025192834",
+                clues: [
+                    "Indice 1 : Je porte en moi le deuil d'une civilisation martienne tout entière décimée par la guerre.",
+                    "Indice 2 : J'ai dirigé pendant des années une agence gouvernementale secrète sous une fausse identité humaine.",
+                    "Indice 3 : Je possède des pouvoirs de télépathie, de vol et de métamorphose cellulaire.",
+                    "Indice 4 : Je suis le dernier fils de Mars, Martian Manhunter."
+                ]
+            },
+            {
+                name: "Eobard Thawne", series: "The Flash",
+                image: "https://static.wikia.nocookie.net/marvel_dc/images/5/51/Eobard_Thawne_Arrow_Earth-X.jpg/revision/latest/scale-to-width-down/732?cb=20180211193235",
+                clues: [
+                    "Indice 1 : Je suis originaire d'un lointain futur où j'ai voué ma vie à étudier la trace d'un héros.",
+                    "Indice 2 : J'ai usurpé l'identité d'un brillant scientifique pour orchestrer un accident technologique.",
+                    "Indice 3 : Mes éclairs de course sont de couleur rouge sang et je suis l'ennemi juré de Barry.",
+                    "Indice 4 : Je suis le maître du voyage temporel maléfique, le Reverse-Flash."
+                ]
+            },
+            {
+                name: "Lena Luthor", series: "Supergirl",
+                image: "https://static.wikia.nocookie.net/marvel_dc/images/8/89/Lena_Luthor_Arrow_Earth-38_0003.jpg/revision/latest?cb=20191121144612",
+                clues: [
+                    "Indice 1 : Je porte un nom de famille tristement célèbre à Metropolis pour ses penchants tyranniques.",
+                    "Indice 2 : J'ai pris la tête de L-Corp pour racheter la réputation sulfureuse de mes ancêtres.",
+                    "Indice 3 : J'entretiens une amitié complexe, faite de secrets et de révélations, avec Supergirl.",
+                    "Indice 4 : Je suis la brillante scientifique et femme d'affaires Lena Luthor."
+                ]
+            },
+            {
+                name: "Thea Queen", series: "Arrow",
+                image: "https://www.critictoo.com/wp-content/uploads/2019/09/Willa-Holland-Thea-Queen-Arrow-Saison-6.jpg",
+                clues: [
+                    "Indice 1 : J'ai traversé des périodes sombres d'addiction avant de découvrir un secret de famille bouleversant.",
+                    "Indice 2 : Mon père biologique n'est autre que le redoutable leader de la Ligue des Assassins.",
+                    "Indice 3 : J'ai hérité d'un surnom d'archer en rouge après avoir suivi un entraînement intensif.",
+                    "Indice 4 : Je suis la sœur d'Oliver Queen, alias Speedy."
+                ]
+            },
+            {
+                name: "Roy Harper", series: "Arrow",
+                image: "https://fr.web.img4.acsta.net/newsv7/19/08/09/10/30/4765130.jpg",
+                clues: [
+                    "Indice 1 : J'ai débuté dans les bas-fonds de Starling City en commettant des petits larcins.",
+                    "Indice 2 : Le sérum Mirakuru m'a conféré une férocité surhumaine difficile à canaliser.",
+                    "Indice 3 : J'ai endossé le costume rouge d'acolyte avant de simuler ma propre mort en prison.",
+                    "Indice 4 : Je suis l'archer acrobatique connu sous le nom d'Arsenal."
+                ]
+            },
+            {
+                name: "Iris West", series: "The Flash",
+                image: "https://www.washingtonpost.com/wp-apps/imrs.php?src=http://www.washingtonpost.com/news/comic-riffs/wp-content/uploads/sites/15/2018/01/FLA220b_0079b.jpg&w=1440",
+                clues: [
+                    "Indice 1 : J'ai tenu un blog d'investigation sur les phénomènes étranges avant la création du S.T.A.R. Labs.",
+                    "Indice 2 : Je suis le pilier émotionnel absolu et l'ancre de la vitesse de Barry Allen.",
+                    "Indice 3 : J'ai fondé le média d'information indépendant The Central City Citizen.",
+                    "Indice 4 : Je suis Iris West-Allen, journaliste et rédactrice en chef."
+                ]
+            },
+            {
+                name: "Joe West", series: "The Flash",
+                image: "https://www.premiere.fr/sites/default/files/styles/scale_crop_1280x720/public/2019-01/Jesse-L-Martin-in-The-Flash.jpg",
+                clues: [
+                    "Indice 1 : J'ai veillé sur un jeune garçon traumatisé après le meurtre de sa mère en l'accueillant chez moi.",
+                    "Indice 2 : Je suis le doyen respecté et l'inspecteur vétéran de la police de Central City.",
+                    "Indice 3 : Mes conseils paternels avisés ont résolu la plupart des crises émotionnelles de l'équipe.",
+                    "Indice 4 : Je suis le capitaine Joe West, père d'Iris et de Wally."
+                ]
+            },
+            {
+                name: "Alex Danvers", series: "Supergirl",
+                image: "https://www.kryptonsite.com/wp-content/uploads/2018/04/SPG317b_0013b.jpg",
+                clues: [
+                    "Indice 1 : J'ai grandi dans l'ombre d'une sœur extraterrestre dotée de pouvoirs extraordinaires.",
+                    "Indice 2 : Je ne possède aucune super-force innée, compensant par un entraînement tactique d'élite.",
+                    "Indice 3 : J'ai fini par prendre le commandement suprême des opérations de la D.E.O.",
+                    "Indice 4 : Je suis Alex Danvers, analyste hors pair et directrice d'agence."
+                ]
+            },
+            {
+                name: "Clark Kent", series: "Supergirl",
+                image: "https://www.programme-tv.net/imgre/fit/http.3A.2F.2Fprd2-bone-image.2Es3-website-eu-west-1.2Eamazonaws.2Ecom.2Ftel.2F2019.2F10.2F02.2F0455b889-5a88-43b8-93d3-5e656bca7821.2Ejpeg/1200x900/crop-from/top/quality/80/arrowverse-la-photo-insolite-de-deux-des-superman-de-la-serie-sur-le-meme-tournage.jpg",
+                clues: [
+                    "Indice 1 : J'ai quitté Smallville pour m'établir comme reporter d'investigation à Metropolis.",
+                    "Indice 2 : Je suis le cousin protecteur et l'mentor de la protectrice de National City.",
+                    "Indice 3 : Une simple paire de lunettes suffit à masquer mon identité aux yeux du monde.",
+                    "Indice 4 : Je suis l'Homme d'Acier légendaire, Superman."
+                ]
+            },
+            {
+                name: "Lois Lane", series: "Superman & Lois",
+                image: "https://www.femmesdeseries.com/wp-content/uploads/2024/12/SMLS2_BitsieTulloch_NM_120521_SEAMLESS_2555r-e1645045933832.jpg",
+                clues: [
+                    "Indice 1 : Mon flair journalistique légendaire n'a d'égal que mon franc-parler indomptable.",
+                    "Indice 2 : J'ai mené des enquêtes à haut risque contre les plus puissantes multinationales corrompues.",
+                    "Indice 3 : Je partage ma vie de famille à Smallville entre reportages et éducation de jumeaux.",
+                    "Indice 4 : Je suis la journaliste d'investigation iconique Lois Lane."
+                ]
+            },
+            {
+                name: "John Constantine", series: "Legends of Tomorrow",
+                image: "https://www.hollywoodreporter.com/wp-content/uploads/2015/05/constantine_s01e01_still.jpg",
+                clues: [
+                    "Indice 1 : Je suis né à Liverpool avec un penchant prononcé pour le cynisme et la magie noire.",
+                    "Indice 2 : Mes poumons sont consumés par le tabagisme chronique et mon âme est promise aux enfers.",
+                    "Indice 3 : Je manie les arcanes occultes et les exorcismes avec un imperméable élimé.",
+                    "Indice 4 : Je suis le mage exorciste et détective de l'étrange John Constantine."
+                ]
+            },
+            {
+                name: "Wally West", series: "The Flash",
+                image: "https://www.hollywoodreporter.com/wp-content/uploads/2016/07/kid_flash_publicity.jpg",
+                clues: [
+                    "Indice 1 : J'ai découvert tardivement mon appartenance à la famille West à Central City.",
+                    "Indice 2 : J'ai d'abord consumé ma fougue dans des courses de rue illégales avant d'obtenir des éclairs.",
+                    "Indice 3 : J'ai fait un passage remarqué auprès des Légendes du temps pour trouver la paix intérieure.",
+                    "Indice 4 : Je suis le speedster au costume jaune et rouge, Kid Flash."
+                ]
+            },
+            {
+                name: "Laurel Lance", series: "Arrow",
+                image: "https://heroichollywood.com/wp-content/uploads/2015/10/Arrow402-12.jpg",
+                clues: [
+                    "Indice 1 : J'exerçais initialement la profession d'avocate pour la défense des plus démunis.",
+                    "Indice 2 : La mort tragique de ma sœur a bouleversé ma trajectoire vers les arts martiaux.",
+                    "Indice 3 : J'ai utilisé un dispositif technologique sophistiqué pour générer des ultrasons dévastateurs.",
+                    "Indice 4 : Je suis la courageuse justicière Black Canary."
+                ]
+            },
+            {
+                name: "Mon-El", series: "Supergirl",
+                image: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2019/01/Supergirl-Mon-El.jpeg?w=1200&h=628&fit=crop",
+                clues: [
+                    "Indice 1 : Je proviens d'une planète voisine de Krypton dont la culture aristocratique était frivole.",
+                    "Indice 2 : J'ai d'abord échoué sur Terre en affichant un comportement égoïste et arrogant.",
+                    "Indice 3 : Une allergie mortelle au plomb a contraint mon départ précipité vers le futur.",
+                    "Indice 4 : Je suis le prince daxamite Lar Gand, alias Mon-El."
+                ]
+            },
+            {
+                name: "Brainiac 5", series: "Supergirl",
+                image: "https://deadline.com/wp-content/uploads/2018/06/jesse-rath-brainiac-20.jpg",
+                clues: [
+                    "Indice 1 : Je suis issu du 31e siècle et membre éminent de la Légion des Super-Héros.",
+                    "Indice 2 : Mon esprit possède un intellect doué de douzième niveau et une peau argentée caractéristique.",
+                    "Indice 3 : J'ai intégré le DEO pour aider Kara à contrer les menaces d'envergure cosmique.",
+                    "Indice 4 : Je suis le scientifique extraterrestre Brainiac 5 (Querl Dox)."
+                ]
+            },
+            {
+                name: "Nora West-Allen", series: "The Flash",
+                image: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2019/03/The-Flash-Nora-XS-feature.jpg",
+                clues: [
+                    "Indice 1 : J'ai voyagé clandestinement à travers le temps depuis le futur pour rencontrer mon père.",
+                    "Indice 2 : J'ai nourri une rancœur secrète envers ma mère avant de comprendre la vérité sur mes gènes.",
+                    "Indice 3 : Mes éclairs de vitesse mélangent le violet et le jaune vif.",
+                    "Indice 4 : Je suis la fille de Barry et Iris, la speedster XS."
+                ]
+            },
+            {
+                name: "Damien Darhk", series: "Arrow",
+                image: "https://static.wikia.nocookie.net/arrow/images/b/b5/Damien_Darhk.png/revision/latest?cb=20230522231125",
+                clues: [
+                    "Indice 1 : J'ai autrefois rompu les rangs de la Ligue des Assassins en emportant un artefact mystique.",
+                    "Indice 2 : Je dirige l'organisation H.I.V.E. avec un flegme théâtral et des pouvoirs de télékinésie occulte.",
+                    "Indice 3 : J'ai planifié l'apocalypse mondiale à l'aide d'ogives nucléaires (projet Genesis).",
+                    "Indice 4 : Je suis le sorcier maléfique Damien Darhk."
+                ]
+            },
+            {
+                name: "Prometheus", series: "Arrow",
+                image: "https://static.wikia.nocookie.net/arrow/images/f/f6/Prometheus_suit.png/revision/latest/scale-to-width-down/1200?cb=20170128144941",
+                clues: [
+                    "Indice 1 : Mes origines remontent à une vieille bavure commise par Oliver au tout début de sa croisade.",
+                    "Indice 2 : J'ai infiltré les plus hautes sphères judiciaires sous une fausse identité de procureur.",
+                    "Indice 3 : J'ai soumis l'archer vert à un terrible lavage de cerveau psychologique sur Lian Yu.",
+                    "Indice 4 : Je suis l'implacable archer masqué Prometheus (Simon Morrison)."
+                ]
+            },
+            {
+                name: "Anissa Pierce", series: "Black Lightning",
+                image: "https://sm.ign.com/ign_fr/news/b/black-ligh/black-lightning-first-look-at-superhero-thunder_u2zk.png",
+                clues: [
+                    "Indice 1 : Je suis médecin de formation et engagée activement dans la lutte pour les droits civiques.",
+                    "Indice 2 : J'ai découvert mes capacités surhumaines en manifestant des ondes de choc sismiques.",
+                    "Indice 3 : Je combats le crime dans les rues de Freeland aux côtés de ma famille.",
+                    "Indice 4 : Je suis la fille de Black Lightning, la super-héroïne Thunder."
+                ]
+            },
+            {
+                name: "Jefferson Pierce", series: "Black Lightning",
+                image: "https://variety.com/wp-content/uploads/2018/01/blk101d_0100r1-e1516202479374.jpg?crop=0px%2C25px%2C1000px%2C563px&resize=1000%2C563",
+                clues: [
+                    "Indice 1 : Je dirigeais un établissement scolaire en tant que proviseur avant de reprendre du service.",
+                    "Indice 2 : Mes pouvoirs électriques foudroient la pègre corrompue de la ville de Freeland.",
+                    "Indice 3 : J'ai mis un point d'honneur à protéger mes filles tout en cachant mon lourd secret.",
+                    "Indice 4 : Je suis le justicier directeur d'école connu sous le nom de Black Lightning."
+                ]
+            },
+            {
+                name: "Zari Tomaz", series: "Legends of Tomorrow",
+                image: "https://static.wikia.nocookie.net/arrow/images/8/82/Zari_Tarazi.png/revision/latest/scale-to-width-down/1200?cb=20241112030153",
+                clues: [
+                    "Indice 1 : Je viens d'un futur dystopique placé sous un régime technologique autoritaire.",
+                    "Indice 2 : Je suis une hackeuse cynique et mordante au grand cœur accro aux beignets.",
+                    "Indice 3 : Je canalise la puissance d'un artefact mystique ancestral lié aux courants aériens.",
+                    "Indice 4 : Je suis la porteuse du totem du vent, Zari Tomaz."
+                ]
+            }
+        ];
+
+        let currentQuizQueue = [];
+        let currentIndex = 0;
+        let currentClueIndex = 0;
+        let timerInterval = null;
+        let timeLeft = 20;
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            currentQuizQueue = shuffle(charactersDatabase);
+            currentIndex = 0;
+            
+            playTone("G4");
+            loadCharacterRound();
+        }
+
+        function resetGame() {
+            clearInterval(timerInterval);
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            playTone("C4");
+        }
+
+        function loadCharacterRound() {
+            clearInterval(timerInterval);
+            currentClueIndex = 0;
+            timeLeft = 20;
+
+            const charData = currentQuizQueue[currentIndex];
+            document.getElementById('roundCounter').innerText = `MANCHE ${currentIndex + 1} / 32`;
+            
+            document.getElementById('revealSection').classList.add('hidden');
+            document.getElementById('revealBtnContainer').classList.remove('hidden');
+
+            const cluesContainer = document.getElementById('cluesContainer');
+            cluesContainer.innerHTML = '';
+
+            appendClue(charData.clues[0], 1);
+            startTimer();
+        }
+
+        function appendClue(clueText, clueNum) {
+            const cluesContainer = document.getElementById('cluesContainer');
+            const div = document.createElement('div');
+            div.className = "clue-box p-2.5 rounded-lg font-mono text-xs md:text-sm text-white flex items-start space-x-2";
+            div.innerHTML = `<span class="bg-[#003b13] text-[#00ff66] px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-[#00ff66]/30 shrink-0">Indice ${clueNum}</span> <span class="flex-grow">${clueText}</span>`;
+            cluesContainer.appendChild(div);
+            cluesContainer.scrollTop = cluesContainer.scrollHeight;
+            playTone("C5");
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 20;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    const charData = currentQuizQueue[currentIndex];
+                    currentClueIndex++;
+
+                    if (currentClueIndex < 4) {
+                        appendClue(charData.clues[currentClueIndex], currentClueIndex + 1);
+                        startTimer();
+                    } else {
+                        revealIdentity();
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timerDisplay = document.getElementById('timerDisplay');
+            timerDisplay.innerText = `${timeLeft}s`;
+
+            if (timeLeft <= 5) {
+                timerDisplay.classList.add('blink-danger');
+            } else {
+                timerDisplay.classList.remove('blink-danger');
+            }
+        }
+
+        function revealIdentity() {
+            clearInterval(timerInterval);
+            document.getElementById('timerDisplay').innerText = "RÉVÉLÉ";
+            document.getElementById('timerDisplay').classList.remove('blink-danger');
+
+            const charData = currentQuizQueue[currentIndex];
+            document.getElementById('revealImg').src = charData.image;
+            document.getElementById('revealName').innerText = charData.name;
+            document.getElementById('revealSeries').innerText = charData.series;
+
+            document.getElementById('revealSection').classList.remove('hidden');
+            document.getElementById('revealBtnContainer').classList.add('hidden');
+            playTone("E5");
+        }
+
+        function nextCharacter() {
+            currentIndex++;
+            if (currentIndex < currentQuizQueue.length) {
+                loadCharacterRound();
+            } else {
+                showEndScreen();
+            }
+        }
+
+        function showEndScreen() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+            playTone("A5");
+        }
+    </script>
+</body>
+</html>

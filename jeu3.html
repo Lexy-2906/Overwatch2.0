@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Tribunal de l'Arrowverse (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.85);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px #00f5ff;
+            transform: scale(1.02);
+        }
+
+        .vote-btn {
+            background: rgba(0, 30, 10, 0.9);
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            text-align: left;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .vote-btn:hover:not(:disabled) {
+            background: rgba(0, 245, 255, 0.2);
+            border-color: #00f5ff;
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
+            transform: translateY(-2px);
+        }
+        .vote-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #334155;
+        }
+
+        .accused-img {
+            width: 110px;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #00ff66;
+            background-color: #000;
+            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.3);
+        }
+
+        .character-card img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #00ff66;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-20 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-house"></i>
+                <span class="hidden sm:inline">ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-scale-balanced animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow uppercase">
+                        TRIBUNAL DE L'ARROWVERSE
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60" id="header-subtitle">LES 15 AUDIENCES SUPRÊMES</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="goToWelcome()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">RESET</span>
+            </button>
+            <button onclick="toggleAudio()" id="audioBtn" class="cyber-btn px-3 py-2 rounded-lg text-xs flex items-center space-x-2">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                <span class="hidden sm:inline">SFX: OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-4xl mx-auto w-full relative z-10 my-4">
+
+        <!-- Écran d'accueil -->
+        <div id="welcome-screen" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-gavel text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                TRIBUNAL DE L'ARROWVERSE // ÉDITION VERTE
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base">
+                [CONSOLE OVERWATCH] — 15 figures emblématiques du multivers défilent à la barre. Examinez leurs chefs d'accusation et prononcez le verdict.
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left">
+                <h3 class="text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-terminal mr-2"></i> RÈGLES DU TRIBUNAL</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> 15 accusés tirés au sort pour des audiences publiques.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour valider chaque sentence.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> À la fin des audiences, découvrez la composition finale des cellules de prison et des citoyens libres.</li>
+                </ul>
+            </div>
+
+            <button onclick="startGame()" class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest">
+                LANCER L'AUDIENCE <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Zone de Jeu (15 manches) -->
+        <div id="game-area" class="w-full hidden flex flex-col space-y-4 holo-frame p-6 rounded-xl">
+            
+            <div class="flex justify-between items-center border-b border-[#003b13] pb-3">
+                <div class="text-xs uppercase tracking-widest text-[#00ff66]/80" id="case-number">
+                    AFFAIRE 1 / 15
+                </div>
+                <div class="text-xs font-bold text-[#ffcc00] uppercase tracking-wider" id="case-category">
+                    CHEF D'ACCUSATION
+                </div>
+            </div>
+
+            <!-- Alerte de sondage clignotante -->
+            <div class="text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse my-2">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <!-- Section de l'accusé -->
+            <div class="flex flex-col md:flex-row gap-5 items-center bg-black/40 p-5 rounded-xl border-l-4 border-[#00ff66]">
+                <img id="accused-img" src="" alt="Accusé" class="accused-img">
+                <div class="flex flex-col space-y-2 text-center md:text-left">
+                    <h2 class="text-xl md:text-2xl font-bold text-[#00f5ff] text-glow uppercase" id="accused-name">Nom du personnage</h2>
+                    <p class="text-xs md:text-sm text-white leading-relaxed" id="accused-crime">Description du chef d'accusation...</p>
+                </div>
+            </div>
+
+            <!-- Section des votes -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="voting-section">
+                <button class="vote-btn p-4 rounded-xl border border-[#003b13] flex flex-col justify-between" id="btn-guilty" onclick="vote('guilty')">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold text-base text-[#ff0033]">Réponse 1 : Coupable</span>
+                        <span class="text-xs bg-[#003b13] px-2 py-1 rounded border border-[#ff0033] text-[#ff0033]" id="count-guilty">0</span>
+                    </div>
+                    <div class="text-xs text-[#00ff66]/70">Condamnation immédiate par le chat</div>
+                </button>
+                <button class="vote-btn p-4 rounded-xl border border-[#003b13] flex flex-col justify-between" id="btn-innocent" onclick="vote('innocent')">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold text-base text-[#00ff66]">Réponse 2 : Innocent</span>
+                        <span class="text-xs bg-[#003b13] px-2 py-1 rounded border border-[#00ff66] text-[#00ff66]" id="count-innocent">0</span>
+                    </div>
+                    <div class="text-xs text-[#00ff66]/70">Acquittement prononcé par le chat</div>
+                </button>
+            </div>
+
+            <!-- Boîte de verdict -->
+            <div class="verdict-box hidden bg-black/80 border border-[#00f5ff] p-5 rounded-xl mt-4 text-center" id="verdict-box">
+                <div class="text-lg font-bold uppercase tracking-wider mb-2" id="verdict-title">VERDICT</div>
+                <p class="text-xs md:text-sm text-white mb-4 leading-relaxed" id="verdict-desc"></p>
+                <button class="cyber-btn px-6 py-3 rounded-lg font-bold uppercase tracking-wider text-sm" id="next-btn" onclick="nextCase()">Affaire Suivante</button>
+            </div>
+        </div>
+
+        <!-- Écran Final : Prison vs Libre -->
+        <div class="final-screen hidden w-full holo-frame p-6 rounded-2xl" id="final-screen">
+            <h2 class="text-center font-bold text-2xl text-[#ffcc00] uppercase tracking-wider mb-2">Bilan Définitif du Tribunal</h2>
+            <p class="text-center text-xs md:text-sm text-[#00ff66]/70 mb-6">Voici le sort réservé aux 15 accusés selon les verdicts du chat :</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Case Prison -->
+                <div class="bg-black/50 rounded-xl p-5 border-2 border-[#ff0033]">
+                    <div class="font-bold text-lg text-[#ff0033] uppercase text-center mb-4"><i class="fa-solid fa-lock mr-2"></i> Cellule de Prison</div>
+                    <div class="flex flex-col gap-3 max-h-72 overflow-y-auto pr-2" id="prison-list"></div>
+                </div>
+
+                <!-- Case Libre -->
+                <div class="bg-black/50 rounded-xl p-5 border-2 border-[#00ff66]">
+                    <div class="font-bold text-lg text-[#00ff66] uppercase text-center mb-4"><i class="fa-solid fa-scale-unbalanced mr-2"></i> Libres & Acquittés</div>
+                    <div class="flex flex-col gap-3 max-h-72 overflow-y-auto pr-2" id="free-list"></div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-center gap-4 mt-6">
+                <button class="cyber-btn px-6 py-3 rounded-lg font-bold uppercase text-sm" onclick="startGame()">Recommencer le Tribunal</button>
+                <button class="cyber-btn px-6 py-3 rounded-lg font-bold uppercase text-sm" onclick="goToWelcome()">Accueil & Règles</button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10">
+        OVERWATCH PROTOCOL // TRIBUNAL ENGINE
+    </footer>
+
+    <script>
+        // Matrix Rain
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        // Audio Synth
+        let audioEnabled = false;
+        let synth = null;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+            }
+        }
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const btn = document.getElementById('audioBtn');
+            if (audioEnabled) {
+                Tone.start();
+                initAudio();
+                icon.className = "fa-solid fa-volume-high";
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span class="hidden sm:inline">SFX: ON</span>';
+            } else {
+                icon.className = "fa-solid fa-volume-xmark";
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i><span class="hidden sm:inline">SFX: OFF</span>';
+            }
+        }
+        function playTone(note = "A4") {
+            if (!audioEnabled || !synth) return;
+            try { synth.triggerAttackRelease(note, "16n"); } catch(e) {}
+        }
+
+        const cases = [
+            {
+                name: "Barry Allen (The Flash)",
+                universe: "The Flash",
+                crime: "A brisé à de multiples reprises le continuum espace-temps (Flashpoint) pour des motifs personnels, bouleversant la vie de ses amis et créant des anomalies temporelles.",
+                img: "https://deadline.com/wp-content/uploads/2021/05/FLA711a_0043r.jpg",
+                guiltySentence: "Coupable ! Condamné à ne plus jamais courir plus vite que la lumière sans l'accord écrit de Jay Garrick.",
+                innocentSentence: "Innocenté ! L'amour pour sa famille justifie tous les voyages dans le temps."
+            },
+            {
+                name: "Oliver Queen (Arrow)",
+                universe: "Arrow",
+                crime: "A passé ses premières années de justicier à éliminer de sang-froid des dizaines de criminels sans passer par la case tribunal.",
+                img: "https://images.rtl.fr/~c/2000v2000/rtl/www/1318128-la-serie-arrow-est-arrivee-sur-les-ecrans-francais-en-decembre-2013.jpg",
+                guiltySentence: "Coupable d'excès de zèle en mode justicier extrémiste ! Un tour à Slabside s'impose.",
+                innocentSentence: "Innocent ! Star City était pourrie, il fallait des méthodes radicales. 'You have failed this city !'"
+            },
+            {
+                name: "Eobard Thawne (Reverse-Flash)",
+                universe: "The Flash",
+                crime: "A volé l'identité du Dr Harrison Wells, manipulé l'équipe S.T.A.R. pendant des années et assassiné Nora Allen.",
+                img: "https://static.wikia.nocookie.net/pure-evil-wiki/images/4/4b/Reverse-Flash_%28Arrowverse%29.png/revision/latest?cb=20220910141527",
+                guiltySentence: "Coupable du plus grand stalking inter-temporel de l'histoire !",
+                innocentSentence: "Innocent ? Le jury rejette catégoriquement toute immunité pour le némésis de Flash."
+            },
+            {
+                name: "Kara Danvers (Supergirl)",
+                universe: "Supergirl",
+                crime: "A brisé les protocoles du DEO à de nombreuses reprises et pris des décisions unilatérales risquant de déclencher des guerres interplanétaires.",
+                img: "https://a1cf74336522e87f135f-2f21ace9a6cf0052456644b80fa06d4f.ssl.cf2.rackcdn.com/images/characters/large/800/Kate-Danvers.Supergirl.webp",
+                guiltySentence: "Coupable d'insubordination chronique envers ses supérieurs.",
+                innocentSentence: "Innocentée ! La fille d'acier a sauvé la Terre et le multivers, le jury l'acquitte."
+            },
+            {
+                name: "Malcolm Merlyn (Dark Archer)",
+                universe: "Arrow",
+                crime: "A orchestré l'entreprise 'The Undertaking' visant à raser les Glades et décimer des milliers d'innocents.",
+                img: "https://static.wikia.nocookie.net/arrow-france/images/6/67/5.Arrow_Lian_Yu_Malcolm_Merlyn.jpg/revision/latest?cb=20170519052327&path-prefix=fr",
+                guiltySentence: "Coupable de terrorisme urbain prémédité à grande échelle !",
+                innocentSentence: "Innocent ? Le tribunal refuse l'argument du traumatisme familial."
+            },
+            {
+                name: "Sara Lance (White Canary)",
+                universe: "Legends of Tomorrow",
+                crime: "A accumulé un nombre incalculable de meurtres sous la bannière de la Ligue des Assassins avant de devenir capitaine des Légendes.",
+                img: "https://static.wikia.nocookie.net/marvel_dc/images/b/bb/Sara_Lance_Arrow_0004.jpg/revision/latest?cb=20190625235534",
+                guiltySentence: "Coupable d'un passé d'assassin impitoyable.",
+                innocentSentence: "Innocentée ! Sa rédemption à la tête des Légendes efface toute sa période sombre."
+            },
+            {
+                name: "John Constantine",
+                universe: "Legends of Tomorrow",
+                crime: "A utilisé des rituels de magie noire interdits, condamnant l'âme de ses proches aux enfers par égoïsme.",
+                img: "https://www.hollywoodreporter.com/wp-content/uploads/2015/05/constantine_s01e01_still.jpg",
+                guiltySentence: "Coupable de manipulation occulte et de mise en danger d'autrui.",
+                innocentSentence: "Innocent ! C'est un magicien cynique mais au fond, il protège le monde."
+            },
+            {
+                name: "Slade Wilson (Deathstroke)",
+                universe: "Arrow",
+                crime: "Sous l'emprise du Mirakuru, a détruit Star City, tué la mère d'Oliver et semé le chaos absolu.",
+                img: "https://static.wikia.nocookie.net/heros/images/3/3b/Slade_Wilson_-_Promo_%282%29.jpg/revision/latest?cb=20210409192647&path-prefix=fr",
+                guiltySentence: "Coupable de haute trahison et de massacres à grande échelle.",
+                innocentSentence: "Innocent ? Le Mirakuru a altéré son esprit, mais le jury reste sceptique."
+            },
+            {
+                name: "Cisco Ramon (Vibe)",
+                universe: "The Flash",
+                crime: "A fabriqué des armes technologiques surpuissantes et des cellules de confinement de méta-humains sans respect des droits civiques.",
+                img: "https://www.comicbasics.com/wp-content/uploads/2023/05/what-happened-to-cisco-in-the-flash.jpg",
+                guiltySentence: "Coupable de création de prisons illégales au sous-sol des S.T.A.R. Labs.",
+                innocentSentence: "Innocent ! Il a créé les meilleurs gadgets et sauvés l'équipe cent fois."
+            },
+            {
+                name: "Lex Luthor",
+                universe: "Supergirl",
+                crime: "A tenté de réécrire la réalité entière à l'aide du Codex pour façonner un univers à sa botte.",
+                img: "https://static0.srcdn.com/wordpress/wp-content/uploads/2021/03/Supergirl-Characters-Lex-Luthor.jpg",
+                guiltySentence: "Coupable de mégalomanie absolue et de tentative de dictature universelle.",
+                innocentSentence: "Innocent ? Même le chat refuse de voter l'acquittement pour Lex."
+            },
+            {
+                name: "Ray Palmer (The Atom)",
+                universe: "Legends of Tomorrow",
+                crime: "A développé une nanotechnologie militaire ultra-sensible et l'a utilisée sans l'accord des autorités fédérales.",
+                img: "https://i.pinimg.com/564x/de/71/aa/de71aaf461079dc6d098e7dfc95887f0.jpg",
+                guiltySentence: "Coupable d'utilisation de technologie militaire non réglementaire.",
+                innocentSentence: "Innocent ! C'est le rayon de soleil scientifique des Légendes."
+            },
+            {
+                name: "Adrian Chase (Prometheus)",
+                universe: "Arrow",
+                crime: "A mené une vendetta psychologique terrifiante contre Oliver Queen, détruisant sa vie personnelle et piégeant toute la ville.",
+                img: "https://fr.web.img5.acsta.net/newsv7/17/03/02/16/43/5699260.jpg",
+                guiltySentence: "Coupable du plus grand harcèlement psychologique et criminel de l'histoire de Star City.",
+                innocentSentence: "Innocent ? Son sens de la stratégie machiavélique impressionne, mais le tribunal le condamne."
+            },
+            {
+                name: "Nia Nal (Dreamer)",
+                universe: "Supergirl",
+                crime: "A altéré volontairement des visions prophétiques pour changer le destin, brisant les règles cosmiques de son peuple.",
+                img: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2021/06/Nia-Nal-Header.jpg?w=1200&h=675&fit=crop",
+                guiltySentence: "Coupable d'interférence illégale dans le flux prophétique.",
+                innocentSentence: "Innocentée ! Utiliser ses pouvoirs pour sauver ses amis est un acte noble."
+            },
+            {
+                name: "Mick Rory (Heat Wave)",
+                universe: "Legends of Tomorrow",
+                crime: "Pyromane invétéré, a détruit ou brûlé des biens publics et historiques à travers les époques par simple ennui.",
+                img: "https://static.wikia.nocookie.net/villains/images/2/2d/78c7386cb261a379943675c72a17ceb0.jpg/revision/latest?cb=20180617014515",
+                guiltySentence: "Coupable de destruction massive par le feu à toutes les époques.",
+                innocentSentence: "Innocent ! Il voulait juste boire sa bière et écrire ses romans de science-fiction."
+            },
+            {
+                name: "Damien Darhk",
+                universe: "Arrow / Legends",
+                crime: "A utilisé la magie noire pour tenter d'anéantir l'humanité entière via un holocauste nucléaire mondial.",
+                img: "https://static.wikia.nocookie.net/arrow/images/b/b5/Damien_Darhk.png/revision/latest?cb=20230522231125",
+                guiltySentence: "Coupable de tentative d'anéantissement de la planète par le feu nucléaire.",
+                innocentSentence: "Innocent ? Sûrement pas, malgré son élégance et son sourire sarcastique."
+            }
+        ];
+
+        let shuffledCases = [];
+        let currentIndex = 0;
+        let votes = { guilty: 0, innocent: 0 };
+        let hasVoted = false;
+        let tribunalResults = [];
+
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function goToWelcome() {
+            document.getElementById('welcome-screen').style.display = 'block';
+            document.getElementById('game-area').classList.add('hidden');
+            document.getElementById('final-screen').classList.add('hidden');
+            document.getElementById('header-subtitle').textContent = "LES 15 AUDIENCES SUPRÊMES";
+            playTone("C4");
+        }
+
+        function startGame() {
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('game-area').classList.remove('hidden');
+            document.getElementById('final-screen').classList.add('hidden');
+            shuffledCases = shuffleArray(cases);
+            currentIndex = 0;
+            tribunalResults = [];
+            loadCase();
+            playTone("G4");
+        }
+
+        function loadCase() {
+            if (currentIndex >= shuffledCases.length) {
+                showFinalScreen();
+                return;
+            }
+
+            const current = shuffledCases[currentIndex];
+            document.getElementById('case-number').textContent = `AFFAIRE ${currentIndex + 1} / ${shuffledCases.length}`;
+            document.getElementById('case-category').textContent = current.universe;
+            document.getElementById('accused-name').textContent = current.name;
+            document.getElementById('accused-crime').textContent = current.crime;
+            document.getElementById('accused-img').src = current.img;
+
+            votes = { guilty: 0, innocent: 0 };
+            hasVoted = false;
+            updateVoteDisplay();
+
+            document.getElementById('btn-guilty').disabled = false;
+            document.getElementById('btn-innocent').disabled = false;
+
+            document.getElementById('voting-section').style.display = 'grid';
+            document.getElementById('verdict-box').classList.add('hidden');
+            document.getElementById('next-btn').textContent = "Affaire Suivante";
+            playTone("A4");
+        }
+
+        function vote(type) {
+            if (hasVoted) return;
+
+            hasVoted = true;
+            votes[type]++;
+            updateVoteDisplay();
+
+            document.getElementById('btn-guilty').disabled = true;
+            document.getElementById('btn-innocent').disabled = true;
+
+            setTimeout(() => {
+                showVerdict();
+            }, 600);
+        }
+
+        function updateVoteDisplay() {
+            document.getElementById('count-guilty').textContent = votes.guilty;
+            document.getElementById('count-innocent').textContent = votes.innocent;
+        }
+
+        function showVerdict() {
+            const current = shuffledCases[currentIndex];
+            const titleEl = document.getElementById('verdict-title');
+            const descEl = document.getElementById('verdict-desc');
+
+            document.getElementById('voting-section').style.display = 'none';
+            document.getElementById('verdict-box').classList.remove('hidden');
+
+            let isGuilty = votes.guilty >= votes.innocent;
+            
+            tribunalResults.push({
+                name: current.name,
+                img: current.img,
+                status: isGuilty ? 'prison' : 'free'
+            });
+
+            if (isGuilty) {
+                titleEl.textContent = "VERDICT : COUPABLE !";
+                titleEl.style.color = "#ff0033";
+                descEl.textContent = current.guiltySentence;
+            } else {
+                titleEl.textContent = "VERDICT : INNOCENT !";
+                titleEl.style.color = "#00ff66";
+                descEl.textContent = current.innocentSentence;
+            }
+
+            if (currentIndex === shuffledCases.length - 1) {
+                document.getElementById('next-btn').textContent = "Voir le Bilan Final (Prison / Libre)";
+            }
+            playTone("E5");
+        }
+
+        function nextCase() {
+            currentIndex++;
+            loadCase();
+        }
+
+        function showFinalScreen() {
+            document.getElementById('game-area').classList.add('hidden');
+            document.getElementById('header-subtitle').textContent = "BILAN DÉFINITIF DU TRIBUNAL";
+            
+            const prisonList = document.getElementById('prison-list');
+            const freeList = document.getElementById('free-list');
+
+            prisonList.innerHTML = '';
+            freeList.innerHTML = '';
+
+            let prisonCount = 0;
+            let freeCount = 0;
+
+            tribunalResults.forEach(char => {
+                let card = document.createElement('div');
+                card.className = 'character-card flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-[#003b13]';
+                card.innerHTML = `
+                    <img src="${char.img}" alt="${char.name}">
+                    <span class="font-bold text-sm text-white">${char.name}</span>
+                `;
+
+                if (char.status === 'prison') {
+                    prisonList.appendChild(card);
+                    prisonCount++;
+                } else {
+                    freeList.appendChild(card);
+                    freeCount++;
+                }
+            });
+
+            if (prisonCount === 0) {
+                prisonList.innerHTML = `<p class="text-xs text-[#00ff66]/60 text-center py-4">Personne n'a été incarcéré !</p>`;
+            }
+            if (freeCount === 0) {
+                freeList.innerHTML = `<p class="text-xs text-[#00ff66]/60 text-center py-4">Personne n'a été acquitté !</p>`;
+            }
+
+            document.getElementById('final-screen').classList.remove('hidden');
+            playTone("C6");
+        }
+    </script>
+</body>
+</html>

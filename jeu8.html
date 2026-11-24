@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Tournoi de Duels (Matrix Overdrive)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Share Tech Mono', 'monospace'],
+                        hero: ['Orbitron', 'sans-serif'],
+                    },
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        matrixDim: '#003b13',
+                        deepVoid: '#020604',
+                        panelGlass: 'rgba(2, 22, 10, 0.85)',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #020604;
+            color: #00ff66;
+            overflow-x: hidden;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.25;
+        }
+
+        .hero-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .holo-card {
+            background: var(--panelGlass);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .holo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 102, 0.1), transparent);
+            animation: scanline 6s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+        }
+
+        .text-glow-red {
+            text-shadow: 0 0 10px rgba(255, 0, 51, 0.8), 0 0 20px rgba(255, 0, 51, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.2);
+        }
+
+        .cyber-btn:hover {
+            background: #00ff66;
+            color: #020604;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.8);
+            transform: scale(1.02);
+        }
+
+        .cyber-btn-red {
+            background: #3b000c;
+            border: 1px solid #ff0033;
+            color: #ff0033;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 0, 51, 0.2);
+        }
+
+        .cyber-btn-red:hover {
+            background: #ff0033;
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(255, 0, 51, 0.8);
+            transform: scale(1.02);
+        }
+
+        .fighter-img {
+            filter: contrast(110%) saturate(120%);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.4);
+        }
+
+        @keyframes greenFlash {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(2); background-color: rgba(0, 255, 102, 0.4); box-shadow: 0 0 40px #00ff66; }
+            100% { filter: brightness(1); }
+        }
+
+        .flash-effect {
+            animation: greenFlash 0.35s ease;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent avec accès au Hub en haut à gauche -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-25 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 no-underline">
+                <i class="fa-solid fa-house"></i>
+                <span>ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="hidden sm:flex bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-extrabold text-xl shadow-lg items-center justify-center">
+                    <i class="fa-solid fa-terminal animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="hero-font text-lg md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow">
+                        TOURNOI DE DUELS
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60 font-mono hidden md:block">SYSTEM STATUS: PROTOCOL_ACTIVE // 32 ENTITIES</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-5xl mx-auto w-full relative z-10 my-6">
+
+        <!-- ÉCRAN D'ACCUEIL & RÈGLES -->
+        <div id="startScreen" class="text-center w-full max-w-2xl holo-card p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-microchip text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="hero-font text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                TOURNOI DU MULTIVERS
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base font-mono">
+                [CONSOLE DE NAVIGATION OVERWATCH] — Initialisation de l'algorithme de combat par paires aléatoires.
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left shadow-inner">
+                <h3 class="hero-font text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-shield-halved mr-2"></i> PROTOCOLE & RÈGLES</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80 font-mono">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> 32 combattants emblématiques de l'Arrowverse injectés aléatoirement.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour voter et élire le vainqueur de chaque duel.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Le streamer clique sur <strong>Réponse 1</strong> ou <strong>Réponse 2</strong> pour valider la progression.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Un seul survivant décrochera le titre de Grand Champion du Multivers.</li>
+                </ul>
+            </div>
+
+            <button onclick="startTournament()" class="cyber-btn w-full py-4 text-lg font-extrabold rounded-xl uppercase tracking-widest hero-font">
+                EXÉCUTER LE TOURNOI <i class="fa-solid fa-terminal ml-2"></i>
+            </button>
+        </div>
+
+        <!-- ÉCRAN DE DUEL ACTIF -->
+        <div id="gameScreen" class="w-full hidden flex flex-col items-center max-w-4xl">
+            
+            <div class="w-full flex justify-between items-center mb-4 px-4 holo-card p-4 rounded-xl">
+                <span class="hero-font text-xs md:text-sm font-bold text-[#ffcc00] uppercase tracking-widest" id="roundIndicator">TOUR 1 // 16 DUELS</span>
+                <span class="text-xs text-[#00ff66]/60 font-mono animate-pulse">SÉLECTION EN COURS</span>
+            </div>
+
+            <!-- Alerte de sondage clignotante -->
+            <div class="w-full text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse mb-6">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest font-mono">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <h3 class="hero-font text-xl md:text-3xl font-black text-white uppercase tracking-wider mb-8 text-center text-glow">
+                // SÉLECTION DU VAINQUEUR DE DUEL //
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mb-8">
+                
+                <div id="cardFighter0" class="holo-card p-6 rounded-2xl flex flex-col items-center text-center group">
+                    <div class="w-44 h-44 md:w-52 md:h-52 rounded-xl overflow-hidden mb-4 bg-black relative">
+                        <img id="fighterImg0" src="" alt="" class="w-full h-full object-cover fighter-img group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-[#00ff66]/10 opacity-0 group-hover:opacity-100 transition"></div>
+                    </div>
+                    <h4 class="hero-font text-2xl font-extrabold text-[#00ff66] text-glow mb-1" id="fighterName0">Nom 1</h4>
+                    <span class="text-xs text-[#00ff66]/60 uppercase font-mono tracking-widest mb-4" id="fighterSeries0">Série 1</span>
+                    <button onclick="winDuel(0)" class="cyber-btn w-full py-3 rounded-xl uppercase font-bold text-sm tracking-wider">
+                        Réponse 1 : Valider <i class="fa-solid fa-bolt ml-2"></i>
+                    </button>
+                </div>
+
+                <div id="cardFighter1" class="holo-card p-6 rounded-2xl flex flex-col items-center text-center group" style="border-color: #ff0033; box-shadow: 0 0 25px rgba(255, 0, 51, 0.3), inset 0 0 15px rgba(255, 0, 51, 0.15);">
+                    <div class="w-44 h-44 md:w-52 md:h-52 rounded-xl overflow-hidden mb-4 bg-black relative">
+                        <img id="fighterImg1" src="" alt="" class="w-full h-full object-cover fighter-img group-hover:scale-105 transition duration-300" style="border-color: #ff0033; box-shadow: 0 0 15px rgba(255, 0, 51, 0.4);">
+                        <div class="absolute inset-0 bg-[#ff0033]/10 opacity-0 group-hover:opacity-100 transition"></div>
+                    </div>
+                    <h4 class="hero-font text-2xl font-extrabold text-[#ff0033] text-glow-red mb-1" id="fighterName1">Nom 2</h4>
+                    <span class="text-xs text-[#ff0033]/60 uppercase font-mono tracking-widest mb-4" id="fighterSeries1">Série 2</span>
+                    <button onclick="winDuel(1)" class="cyber-btn-red w-full py-3 rounded-xl uppercase font-bold text-sm tracking-wider">
+                        Réponse 2 : Valider <i class="fa-solid fa-bolt ml-2"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ÉCRAN DE GRAND VAINQUEUR -->
+        <div id="endScreen" class="hidden text-center w-full max-w-2xl holo-card p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-4 border border-[#ffcc00]">
+                <i class="fa-solid fa-crown text-5xl text-[#ffcc00] animate-bounce"></i>
+            </div>
+            <h2 class="hero-font text-xs md:text-sm font-extrabold text-[#ffcc00] uppercase tracking-widest mb-2 font-mono">[ CHAMPION SUPRÊME DU MULTIVERS ]</h2>
+            
+            <div class="w-40 h-40 rounded-xl overflow-hidden mx-auto my-6 bg-black relative" style="border: 3px solid #ffcc00; box-shadow: 0 0 30px rgba(255, 204, 0, 0.5);">
+                <img id="championImg" src="" alt="" class="w-full h-full object-cover">
+            </div>
+
+            <h3 class="hero-font text-3xl md:text-4xl font-black text-white text-glow mb-1" id="championName">Nom du Champion</h3>
+            <p class="text-[#00ff66] font-mono uppercase tracking-widest mb-8 text-xs" id="championSeries">Série</p>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button onclick="goToWelcome()" class="cyber-btn flex-1 py-4 rounded-xl font-extrabold text-sm uppercase tracking-wider">
+                    RECOMMENCER <i class="fa-solid fa-rotate-right ml-2"></i>
+                </button>
+                <a href="index.html" class="cyber-btn flex-1 py-4 rounded-xl font-extrabold text-sm uppercase tracking-wider flex items-center justify-center space-x-2 text-center no-underline">
+                    <span>ACCUEIL HUB</span> <i class="fa-solid fa-house ml-2"></i>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bouton flottant de réinitialisation rapide -->
+    <button onclick="goToWelcome()" class="fixed right-6 bottom-6 cyber-btn px-4 py-3 rounded-xl text-xs flex items-center space-x-2 font-bold shadow-2xl z-50">
+        <i class="fa-solid fa-rotate-right text-[#00ff66]"></i>
+        <span>RESET TOURNOI</span>
+    </button>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10 font-mono">
+        OVERWATCH PROTOCOL // ARROWVERSE BATTLE ARENA
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+-/<>{}[]';
+        const alphabet = katakana + latin;
+
+        const fontSize = 16;
+        let columns = canvas.width / fontSize;
+        const rainDrops = [];
+
+        for (let x = 0; x < columns; x++) {
+            rainDrops[x] = 1;
+        }
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(2, 6, 4, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
+                }
+                rainDrops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 30);
+
+        const characters = [
+            { name: "Oliver Queen", series: "Arrow", image: "https://serieously.ouest-france.fr/app/uploads/2022/04/collage-sans-titre-78-min.jpg?width=768&height=432&fit=cover" },
+            { name: "Felicity Smoak", series: "Arrow", image: "https://pbs.twimg.com/media/FFOclyFWUAMtPOV?format=webp&name=large" },
+            { name: "John Diggle", series: "Arrow", image: "https://static.dc.com/sites/default/files/imce/2019/12-DEC/source-AR805B0270b_5de5f0013127c0.82918904.jpg" },
+            { name: "Thea Queen", series: "Arrow", image: "https://www.critictoo.com/wp-content/uploads/2019/09/Willa-Holland-Thea-Queen-Arrow-Saison-6.jpg" },
+            { name: "Roy Harper", series: "Arrow", image: "https://fr.web.img4.acsta.net/newsv7/19/08/09/10/30/4765130.jpg" },
+            { name: "Slade Wilson", series: "Arrow", image: "https://static.wikia.nocookie.net/arrow/images/e/e9/Deathstroke.png/revision/latest?cb=20170525143503" },
+            { name: "Barry Allen", series: "The Flash", image: "https://static0.moviewebimages.com/wordpress/wp-content/uploads/2023/03/grant-gustin-the-flash.jpeg" },
+            { name: "Iris West", series: "The Flash", image: "https://www.washingtonpost.com/wp-apps/imrs.php?src=http://www.washingtonpost.com/news/comic-riffs/wp-content/uploads/sites/15/2018/01/FLA220b_0079b.jpg&w=1440" },
+            { name: "Cisco Ramon", series: "The Flash", image: "https://www.comicbasics.com/wp-content/uploads/2023/05/what-happened-to-cisco-in-the-flash.jpg" },
+            { name: "Caitlin Snow", series: "The Flash", image: "https://www.tvline.com/tvline/casting-news/the-flash-season-7-caitlin-exit-danielle-panabaker-maternity-leave-1198175/flash-6x15-frost.jpg" },
+            { name: "Joe West", series: "The Flash", image: "https://www.premiere.fr/sites/default/files/styles/scale_crop_1280x720/public/2019-01/Jesse-L-Martin-in-The-Flash.jpg" },
+            { name: "Eobard Thawne", series: "The Flash", image: "https://static.wikia.nocookie.net/marvel_dc/images/5/51/Eobard_Thawne_Arrow_Earth-X.jpg/revision/latest/scale-to-width-down/732?cb=20180211193235" },
+            { name: "Kara Danvers", series: "Supergirl", image: "https://a1cf74336522e87f135f-2f21ace9a6cf0052456644b80fa06d4f.ssl.cf2.rackcdn.com/images/characters/large/800/Kate-Danvers.Supergirl.webp" },
+            { name: "Alex Danvers", series: "Supergirl", image: "https://www.kryptonsite.com/wp-content/uploads/2018/04/SPG317b_0013b.jpg" },
+            { name: "J'onn J'onzz", series: "Supergirl", image: "https://static.wikia.nocookie.net/arrow/images/1/15/Martian_Manhunter.png/revision/latest/scale-to-width-down/1200?cb=20211025192834" },
+            { name: "Lena Luthor", series: "Supergirl", image: "https://static.wikia.nocookie.net/marvel_dc/images/8/89/Lena_Luthor_Arrow_Earth-38_0003.jpg/revision/latest?cb=20191121144612" },
+            { name: "Sara Lance", series: "Legends of Tomorrow", image: "https://www.looper.com/img/gallery/sara-lances-entire-arrowverse-backstory-explained/intro-1581529635.jpg" },
+            { name: "Ray Palmer", series: "Legends of Tomorrow", image: "https://static0.moviewebimages.com/wordpress/wp-content/uploads/article/UYKFvwQqGNOy4RVKvgARNxWLQixgtg.jpg" },
+            { name: "Mick Rory", series: "Legends of Tomorrow", image: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2018/03/Dominic-Purcell-as-Heat-Wave-on-Legends-of-Tomorrow.jpg?q=50&fit=crop&w=825&dpr=1.5" },
+            { name: "Zari Tomaz", series: "Legends of Tomorrow", image: "https://static.wikia.nocookie.net/arrow/images/8/82/Zari_Tarazi.png/revision/latest/scale-to-width-down/1200?cb=20241112030153" },
+            { name: "Jefferson Pierce", series: "Black Lightning", image: "https://variety.com/wp-content/uploads/2018/01/blk101d_0100r1-e1516202479374.jpg?crop=0px%2C25px%2C1000px%2C563px&resize=1000%2C563" },
+            { name: "Anissa Pierce", series: "Black Lightning", image: "https://sm.ign.com/ign_fr/news/b/black-ligh/black-lightning-first-look-at-superhero-thunder_u2zk.png" },
+            { name: "Clark Kent", series: "Supergirl", image: "https://www.programme-tv.net/imgre/fit/http.3A.2F.2Fprd2-bone-image.2Es3-website-eu-west-1.2Eamazonaws.2Ecom.2Ftel.2F2019.2F10.2F02.2F0455b889-5a88-43b8-93d3-5e656bca7821.2Ejpeg/1200x900/crop-from/top/quality/80/arrowverse-la-photo-insolite-de-deux-des-superman-de-la-serie-sur-le-meme-tournage.jpg" },
+            { name: "Lois Lane", series: "Superman & Lois", image: "https://www.femmesdeseries.com/wp-content/uploads/2024/12/SMLS2_BitsieTulloch_NM_120521_SEAMLESS_2555r-e1645045933832.jpg" },
+            { name: "John Constantine", series: "Legends of Tomorrow", image: "https://www.hollywoodreporter.com/wp-content/uploads/2015/05/constantine_s01e01_still.jpg" },
+            { name: "Wally West", series: "The Flash", image: "https://www.hollywoodreporter.com/wp-content/uploads/2016/07/kid_flash_publicity.jpg" },
+            { name: "Laurel Lance", series: "Arrow", image: "https://heroichollywood.com/wp-content/uploads/2015/10/Arrow402-12.jpg" },
+            { name: "Mon-El", series: "Supergirl", image: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2019/01/Supergirl-Mon-El.jpeg?w=1200&h=628&fit=crop" },
+            { name: "Brainiac 5", series: "Supergirl", image: "https://deadline.com/wp-content/uploads/2018/06/jesse-rath-brainiac-20.jpg" },
+            { name: "Nora West-Allen", series: "The Flash", image: "https://static0.cbrimages.com/wordpress/wp-content/uploads/2019/03/The-Flash-Nora-XS-feature.jpg" },
+            { name: "Damien Darhk", series: "Arrow", image: "https://static.wikia.nocookie.net/arrow/images/b/b5/Damien_Darhk.png/revision/latest?cb=20230522231125" },
+            { name: "Prometheus", series: "Arrow", image: "https://static.wikia.nocookie.net/arrow/images/f/f6/Prometheus_suit.png/revision/latest/scale-to-width-down/1200?cb=20170128144941" }
+        ];
+
+        let currentRoundPool = [];
+        let nextRoundPool = [];
+        let currentPairIndex = 0;
+        let roundNumber = 1;
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function goToWelcome() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+        }
+
+        function startTournament() {
+            currentRoundPool = shuffle(characters);
+            nextRoundPool = [];
+            currentPairIndex = 0;
+            roundNumber = 1;
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+
+            loadDuel();
+        }
+
+        function loadDuel() {
+            if (currentPairIndex >= currentRoundPool.length) {
+                if (nextRoundPool.length === 1) {
+                    showChampion(nextRoundPool[0]);
+                    return;
+                }
+                currentRoundPool = shuffle(nextRoundPool);
+                nextRoundPool = [];
+                currentPairIndex = 0;
+                roundNumber++;
+            }
+
+            const fighterA = currentRoundPool[currentPairIndex];
+            const fighterB = currentRoundPool[currentPairIndex + 1];
+
+            const totalDuels = currentRoundPool.length / 2;
+            const currentDuelNum = (currentPairIndex / 2) + 1;
+            document.getElementById('roundIndicator').innerText = `TOUR ${roundNumber} // DUEL ${currentDuelNum} SUR ${totalDuels}`;
+
+            document.getElementById('fighterImg0').src = fighterA.image;
+            document.getElementById('fighterName0').innerText = fighterA.name;
+            document.getElementById('fighterSeries0').innerText = fighterA.series;
+
+            document.getElementById('fighterImg1').src = fighterB.image;
+            document.getElementById('fighterName1').innerText = fighterB.name;
+            document.getElementById('fighterSeries1').innerText = fighterB.series;
+        }
+
+        function winDuel(winnerChoice) {
+            const cardId = winnerChoice === 0 ? 'cardFighter0' : 'cardFighter1';
+            const cardElement = document.getElementById(cardId);
+            
+            // Effet de flash visuel au clic
+            cardElement.classList.add('flash-effect');
+
+            setTimeout(() => {
+                cardElement.classList.remove('flash-effect');
+                const fighterA = currentRoundPool[currentPairIndex];
+                const fighterB = currentRoundPool[currentPairIndex + 1];
+
+                const winner = winnerChoice === 0 ? fighterA : fighterB;
+                nextRoundPool.push(winner);
+
+                currentPairIndex += 2;
+                loadDuel();
+            }, 300);
+        }
+
+        function showChampion(champion) {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+
+            document.getElementById('championImg').src = champion.image;
+            document.getElementById('championName').innerText = champion.name;
+            document.getElementById('championSeries').innerText = champion.series;
+        }
+    </script>
+</body>
+</html>

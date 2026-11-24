@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Le Choix Stratégique (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.85);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px #00f5ff;
+            transform: scale(1.02);
+        }
+
+        .choice-btn {
+            background: rgba(0, 30, 10, 0.9);
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .choice-btn:hover:not(:disabled) {
+            background: rgba(0, 245, 255, 0.2);
+            border-color: #00f5ff;
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-20 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-house"></i>
+                <span class="hidden sm:inline">ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-chess animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow uppercase">
+                        LE CHOIX STRATÉGIQUE
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60">MATRICE DE DÉCISION TACTIQUE</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="resetGame()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">RÉINITIALISER</span>
+            </button>
+            <button onclick="toggleAudio()" id="audioBtn" class="cyber-btn px-3 py-2 rounded-lg text-xs flex items-center space-x-2">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                <span class="hidden sm:inline">SFX: OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-3xl mx-auto w-full relative z-10 my-4">
+
+        <!-- Écran d'accueil / Règles -->
+        <div id="startScreen" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-scale-balanced text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                LE CHOIX STRATÉGIQUE // DILEMMES
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base">
+                [CONSOLE OVERWATCH] — Affrontez les décisions les plus cornéliennes de l'Arrowverse. Chaque choix a des répercussions directes sur l'équilibre du multivers.
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left">
+                <h3 class="text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-terminal mr-2"></i> PROTOCOLE & RÈGLES</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Une série de dilemmes tactiques présentés dans un ordre aléatoire.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour valider l'option collective.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Observez les conséquences immédiates de vos décisions sur le terrain.</li>
+                </ul>
+            </div>
+
+            <button onclick="startGame()" class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest">
+                LANCER LE PROTOCOLE <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Écran du Jeu -->
+        <div id="gameScreen" class="w-full hidden flex flex-col space-y-4 holo-frame p-6 rounded-xl">
+            
+            <div class="flex justify-between items-center border-b border-[#003b13] pb-3">
+                <div class="text-xs uppercase tracking-widest text-[#00ff66]/80" id="scenarioCounter">
+                    SCÉNARIO 1 / 15
+                </div>
+                <div class="text-xs font-bold text-[#ffcc00] uppercase tracking-wider" id="scenarioCategory">
+                    DILEMME TACTIQUE
+                </div>
+            </div>
+
+            <!-- Titre clignotant pour le sondage -->
+            <div class="text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse my-2">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <!-- Intitulé du scénario -->
+            <div class="py-2">
+                <h3 id="scenarioText" class="text-lg md:text-xl text-white font-bold leading-relaxed text-glow mb-2">
+                    Chargement du scénario...
+                </h3>
+                <p id="scenarioContext" class="text-xs md:text-sm text-[#00ff66]/70 italic">
+                    Contexte tactique en cours d'analyse...
+                </p>
+            </div>
+
+            <!-- Grille des choix -->
+            <div class="grid grid-cols-1 gap-3" id="choicesContainer">
+                <!-- Les choix seront injectés ici -->
+            </div>
+
+            <!-- Conséquence / Feedback -->
+            <div id="feedbackBox" class="hidden bg-black/80 border border-[#00f5ff] p-4 rounded-xl mt-4">
+                <h4 class="text-sm font-bold text-[#00f5ff] uppercase mb-1"><i class="fa-solid fa-terminal mr-2"></i> RAPPORT DE CONSÉQUENCE :</h4>
+                <p id="feedbackText" class="text-xs md:text-sm text-white"></p>
+            </div>
+
+            <!-- Bouton Suivant -->
+            <div class="pt-4 flex justify-end">
+                <button id="nextBtn" onclick="nextScenario()" class="cyber-btn px-6 py-3 rounded-lg text-sm font-bold uppercase tracking-wider hidden">
+                    SCÉNARIO SUIVANT <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Écran de Fin -->
+        <div id="endScreen" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl hidden">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-flag-checkered text-5xl text-[#ffcc00] animate-bounce"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                RAPPORT DE STRATÉGIE TERMINÉ
+            </h2>
+            <p class="text-xl text-white mb-6">
+                Toutes les décisions tactiques ont été prises avec succès. Le multivers s'est stabilisé selon vos choix.
+            </p>
+            <div class="flex justify-center space-x-4">
+                <button onclick="startGame()" class="cyber-btn px-6 py-3 rounded-lg font-bold uppercase">
+                    NOUVELLE SIMULATION <i class="fa-solid fa-rotate-right ml-2"></i>
+                </button>
+                <a href="index.html" class="cyber-btn px-6 py-3 rounded-lg font-bold uppercase flex items-center">
+                    RETOUR HUB <i class="fa-solid fa-house ml-2"></i>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10">
+        OVERWATCH PROTOCOL // ARROWVERSE STRATEGY ENGINE
+    </footer>
+
+    <script>
+        // Matrix Rain
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        // Audio Synth
+        let audioEnabled = false;
+        let synth = null;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+            }
+        }
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const btn = document.getElementById('audioBtn');
+            if (audioEnabled) {
+                Tone.start();
+                initAudio();
+                icon.className = "fa-solid fa-volume-high";
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span class="hidden sm:inline">SFX: ON</span>';
+            } else {
+                icon.className = "fa-solid fa-volume-xmark";
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i><span class="hidden sm:inline">SFX: OFF</span>';
+            }
+        }
+        function playTone(note = "A4") {
+            if (!audioEnabled || !synth) return;
+            try { synth.triggerAttackRelease(note, "16n"); } catch(e) {}
+        }
+
+        // --- BASE DE SCÉNARIOS STRATÉGIQUES ---
+        const scenariosDatabase = [
+            {
+                category: "DILEMME TEMPOREL",
+                text: "Barry s'apprête à courir pour sauver sa mère de Reverse-Flash, créant un Flashpoint catastrophique.",
+                context: "La timeline entière risque de s'effondrer et vos alliés n'existeront plus.",
+                choices: [
+                    { text: "Lâcher prise et laisser le cours du temps intact.", consequence: "La timeline est préservée, mais Barry porte à jamais le deuil de ses parents." },
+                    { text: "Courir dans le passé et sauver sa mère à tout prix.", consequence: "Flashpoint est créé, engendrant un chaos multivariel sans précédent." }
+                ]
+            },
+            {
+                category: "CHOIX MORAL",
+                text: "Oliver capture un parrain de la pègre qui menace de raser Star City.",
+                context: "La justice officielle est corrompue et inefficace à court terme.",
+                choices: [
+                    { text: "Appliquer la méthode dure et éliminer la menace définitivement.", consequence: "La ville est sauvée, mais Oliver sombre un peu plus dans les ténèbres." },
+                    { text: "Respecter les principes de la justice et le livrer à la police.", consequence: "Le criminel est libéré sous caution par des juges corrompus, replongeant la ville dans le danger." }
+                ]
+            },
+            {
+                category: "TACTIQUE DE CRISE",
+                text: "Une ogive nucléaire dirigée par Damien Darhk menace Havenrock.",
+                context: "Vous ne pouvez rediriger l'impact que vers un site moins peuplé mais comportant des risques collatéraux.",
+                choices: [
+                    { text: "Rediriger l'ogive vers une zone boisée isolée.", consequence: "Des milliers de vies sont sauvées, mais l'explosion provoque des retombées radioactives écologiques." },
+                    { text: "Tenter de pirater le code en vol au péril de vos serveurs.", consequence: "Le piratage échoue partiellement, la frappe fait de nombreuses victimes civiles." }
+                ]
+            },
+            {
+                category: "ALLIANCE EXTRATERRESTRE",
+                text: "Mon-El et les Daxamites exigent un droit d'asile armé sur Terre-38.",
+                context: "Leur présence irrite les autorités locales et menace l'équilibre géopolitique.",
+                choices: [
+                    { text: "Accueillir les réfugiés et les intégrer sous la protection de Supergirl.", consequence: "Une nouvelle ère de coopération s'ouvre, malgré les tensions initiales." },
+                    { text: "Refuser l'accès pour préserver la sécurité immédiate de National City.", consequence: "Les Daxamites se tournent vers la confrontation armée." }
+                ]
+            },
+            {
+                category: "PROTOCOLE DE SÉCURITÉ",
+                text: "Des métahumains dangereux sont enfermés dans les sous-sols (Pipeline) de S.T.A.R. Labs.",
+                context: "Cette prison improvisée ne respecte pas les droits civiques constitutionnels.",
+                choices: [
+                    { text: "Transférer tous les détenus vers une prison fédérale classique.", consequence: "Plusieurs évasions surviennent en route, mais la légalité est respectée." },
+                    { text: "Maintenir le secret et garder le contrôle total de la prison cachée.", consequence: "L'équipe garde une longueur d'avance sur les criminels, mais risque un scandale éthique majeur." }
+                ]
+            },
+            {
+                category: "STRATÉGIE DE L'OMBRE",
+                text: "Adrian Chase (Prometheus) retient vos proches en otage sur l'île de Lian Yu.",
+                context: "Chaque pas en avant peut déclencher les explosifs disséminés partout.",
+                choices: [
+                    { text: "Accepter de s'allier temporairement à d'anciens ennemis pour former un commando d'assaut.", consequence: "L'effet de surprise fonctionne, permettant de neutraliser les pièges de Prometheus." },
+                    { text: "Foncer en solitaire pour négocier directement avec le psychopathe.", consequence: "Le piège se referme, mettant en péril la vie de vos alliés les plus proches." }
+                ]
+            },
+            {
+                category: "GESTION DU MULTIVERS",
+                text: "Le Anti-Monitor s'apprête à effacer l'ensemble des Terres parallèles existantes.",
+                context: "Les Parangons doivent ériger un dernier rempart cosmique.",
+                choices: [
+                    { text: "Sacrifier toute l'énergie du Puits de Lazare pour stabiliser la barrière dimensionnelle.", consequence: "La brèche est colmatée in extremis, gagnant de précieuses heures pour l'humanité." },
+                    { text: "Fuir vers une dimension retranchée en abandonnant les univers secondaires.", consequence: "Le multivers s'effondre plus rapidement sous la poussée de l'entropie." }
+                ]
+            },
+            {
+                category: "COMMANDEMENT DES LÉGENDES",
+                text: "Un anachronisme majeur perturbe l'époque victorienne à Londres.",
+                context: "Intervenir directement risque de modifier l'histoire de manière irréversible.",
+                choices: [
+                    { text: "Envoyer l'équipe infiltrer incognito la haute société sans utiliser de pouvoirs.", consequence: "La mission est un succès discret et la chronologie reste stable." },
+                    { text: "Utiliser le Waverider pour bombarder la zone et régler le problème par la force.", consequence: "L'anachronisme est résolu, mais la reine Victoria demande l'exil des voyageurs." }
+                ]
+            },
+            {
+                category: "INFILTRATION CRIMINELLE",
+                text: "Oliver doit réintégrer la Bratva à Moscou pour obtenir une information vitale.",
+                context: "Les rites d'initiation exigent de commettre des actes répréhensibles.",
+                choices: [
+                    { text: "Jouer le jeu de la pègre pour ne pas compromettre sa couverture.", consequence: "L'information est obtenue, mais au prix de lourds compromis moraux." },
+                    { text: "Tenter de doubler les parrains russes dès le premier jour.", consequence: "La couverture saute immédiatement, déclenchant une fusillade générale." }
+                ]
+            },
+            {
+                category: "ÉTHIQUE SCIENTIFIQUE",
+                text: "Cisco souhaite utiliser ses vibrations pour modifier un souvenir douloureux de Caitlin.",
+                context: "L'expérimentation comporte des risques neurologiques imprévisibles.",
+                choices: [
+                    { text: "Tenter l'intervention quantique pour soulager son amie.", consequence: "Le souvenir est atténué, mais de nouveaux effets secondaires cryogéniques apparaissent." },
+                    { text: "Refuser d'altérer la psyché humaine et privilégier le soutien psychologique naturel.", consequence: "Le processus de guérison est plus long, mais l'intégrité mentale est préservée." }
+                ]
+            },
+            {
+                category: "URGENCE MÉTROPOLITAINE",
+                text: "Une émeute éclate dans les rues de Star City suite aux révélations sur le Justicier.",
+                context: "La police est débordée et les citoyens s'en prennent aux symboles de la ville.",
+                choices: [
+                    { text: "Patrouiller à visage découvert pour apaiser la foule et prêcher par l'exemple.", consequence: "Le calme revient progressivement grâce au dialogue et au charisme du héros." },
+                    { text: "Utiliser des méthodes d'intimidation high-tech pour disperser les manifestants.", consequence: "L'ordre est rétabli instantanément, mais la population développe une peur panique." }
+                ]
+            },
+            {
+                category: "SANCTUAIRE TEMPOREL",
+                text: "Rip Hunter propose de modifier un événement historique mineur pour avantager les Légendes.",
+                context: "Le Bureau Temporel interdit formellement toute interférence de ce type.",
+                choices: [
+                    { text: "Suivre les ordres du Bureau et ignorer l'opportunité.", consequence: "La mission se déroule sans accroc bureaucratique, mais rate une occasion en or." },
+                    { text: "S'allier à Rip pour contourner les règles et s'emparer de la relique.", consequence: "L'équipe gagne un avantage tactique décisif, s'attirant les foudres des autorités temporelles." }
+                ]
+            },
+            {
+                category: "ALERTE SATELLITE",
+                text: "Le système ARGUS intercepte un signal crypté provenant d'une base secrète de Cadmus.",
+                context: "Il pourrait s'agir d'un piège tendu par Lillian Luthor.",
+                choices: [
+                    { text: "Monter une équipe de reconnaissance légère pour analyser la source.", consequence: "Le piège est déjoué et de precieuses données technologiques sont récupérées." },
+                    { text: "Lancer une frappe préventive massive pour détruire le site.", consequence: "Le site explose, mais la source contenant le remède recherché est détruite." }
+                ]
+            },
+            {
+                category: "ALLIANCE DE LA DERNIÈRE CHANCE",
+                text: "Slade Wilson propose son aide à Oliver pour sauver William.",
+                context: "Faire confiance à un ancien mercenaire psychopathe sous Mirakuru comporte un risque immense.",
+                choices: [
+                    { text: "Accepter son aide et sceller un pacte de confiance temporaire.", consequence: "L'efficacité de Slade permet de libérer l'otage sain et sauf." },
+                    { text: "Le refuser catégoriquement et agir seul.", consequence: "La mission s'avère trop périlleuse en solitaire, compliquant le sauvetage." }
+                ]
+            },
+            {
+                category: "VERDICT FINAL",
+                text: "Le tribunal du Multivers vous demande de porter un jugement définitif sur les méthodes expéditives des justiciers.",
+                context: "L'avenir de la justice dépend de votre positionnement philosophique.",
+                choices: [
+                    { text: "Valider la méthode des justiciers : la fin justifie les moyens face au chaos.", consequence: "Le multivers retient les leçons de l'efficacité pragmatique." },
+                    { text: "Prôner le retour absolu à l'état de droit et aux institutions démocratiques.", consequence: "Le multivers s'engage sur la voie d'une justice institutionnelle réformée." }
+                ]
+            }
+        ];
+
+        let currentScenarios = [];
+        let currentIndex = 0;
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            currentScenarios = shuffle(scenariosDatabase);
+            currentIndex = 0;
+            
+            playTone("G4");
+            loadScenario();
+        }
+
+        function resetGame() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            playTone("C4");
+        }
+
+        function loadScenario() {
+            const scData = currentScenarios[currentIndex];
+            document.getElementById('scenarioCounter').innerText = `SCÉNARIO ${currentIndex + 1} / ${currentScenarios.length}`;
+            document.getElementById('scenarioCategory').innerText = scData.category;
+            document.getElementById('scenarioText').innerText = scData.text;
+            document.getElementById('scenarioContext').innerText = scData.context;
+
+            const container = document.getElementById('choicesContainer');
+            container.innerHTML = '';
+
+            scData.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = "choice-btn p-4 rounded-lg font-bold text-sm md:text-base flex items-center justify-between";
+                btn.innerHTML = `<span><strong class="text-[#00ff66] mr-2">Réponse ${index + 1} :</strong> ${choice.text}</span> <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>`;
+                btn.onclick = () => selectChoice(choice.consequence, btn);
+                container.appendChild(btn);
+            });
+
+            document.getElementById('feedbackBox').classList.add('hidden');
+            document.getElementById('nextBtn').classList.add('hidden');
+        }
+
+        function selectChoice(consequenceText, clickedBtn) {
+            const buttons = document.getElementById('choicesContainer').children;
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (buttons[i] !== clickedBtn) {
+                    buttons[i].style.opacity = '0.5';
+                }
+            }
+
+            clickedBtn.style.borderColor = '#00f5ff';
+            clickedBtn.style.background = 'rgba(0, 245, 255, 0.2)';
+
+            document.getElementById('feedbackText').innerText = consequenceText;
+            document.getElementById('feedbackBox').classList.remove('hidden');
+            document.getElementById('nextBtn').classList.remove('hidden');
+
+            playTone("E5");
+        }
+
+        function nextScenario() {
+            currentIndex++;
+            if (currentIndex < currentScenarios.length) {
+                loadScenario();
+            } else {
+                showEndScreen();
+            }
+        }
+
+        function showEndScreen() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+            playTone("A5");
+        }
+    </script>
+</body>
+</html>

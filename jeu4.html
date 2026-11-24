@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — TikTok Battle (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.85);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px #00f5ff;
+            transform: scale(1.02);
+        }
+
+        .choice-card {
+            background: rgba(0, 30, 10, 0.9);
+            border: 2px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .choice-card:hover {
+            background: rgba(0, 245, 255, 0.15);
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.4);
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-20 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-house"></i>
+                <span class="hidden sm:inline">ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-bolt animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow uppercase">
+                        ARROWVERSE TIKTOK BATTLE
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60">MODE LIVE INTERACTIF — CHAT VS CHAT</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="openSettings()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-gear"></i>
+                <span class="hidden sm:inline">PARAMÈTRES</span>
+            </button>
+            <button onclick="toggleAudio()" id="audioBtn" class="cyber-btn px-3 py-2 rounded-lg text-xs flex items-center space-x-2">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                <span class="hidden sm:inline">SFX: OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-5xl mx-auto w-full relative z-10 my-4">
+
+        <!-- Écran d'accueil -->
+        <div id="startScreen" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl max-w-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-masks-theater text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                ARROWVERSE TIKTOK BATTLE
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base">
+                [CONSOLE OVERWATCH] — Le jeu interactif ultime pour animer vos lives et faire s'affronter votre communauté en direct avec un ordre de questions aléatoire !
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left">
+                <h3 class="text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-terminal mr-2"></i> RÈGLES DU JEU</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Une série de questions « Ceci ou Cela » s'enchaîne dans un ordre aléatoire.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour valider l'option choisie par le chat.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Le streamer clique sur <strong>Réponse 1</strong> ou <strong>Réponse 2</strong> pour comptabiliser les points.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Découvrez le grand vainqueur à la fin des manches !</li>
+                </ul>
+            </div>
+
+            <button onclick="startGame()" class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest">
+                LANCER LE LIVE GAME <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Écran de Jeu Actif -->
+        <div id="gameScreen" class="w-full hidden flex flex-col space-y-4 holo-frame p-6 rounded-xl">
+            
+            <!-- Barre de progression et scores -->
+            <div class="flex flex-col sm:flex-row justify-between items-center bg-black/40 p-4 rounded-xl border border-[#003b13] gap-3">
+                <div class="flex items-center space-x-3">
+                    <span class="bg-[#003b13] px-3 py-1 rounded text-xs font-bold text-[#ffcc00] border border-[#00ff66]" id="categoryBadge">Super-Héros</span>
+                    <span class="text-xs font-bold text-[#00ff66]/80" id="roundIndicator">Manche 1 / 15</span>
+                </div>
+                <div class="flex items-center space-x-6 text-sm font-bold">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#00ff66] animate-pulse"></span>
+                        <span class="text-white">Option A : <span id="scoreA" class="text-[#00ff66] text-lg font-mono">0</span></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#00f5ff] animate-pulse"></span>
+                        <span class="text-white">Option B : <span id="scoreB" class="text-[#00f5ff] text-lg font-mono">0</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerte de sondage clignotante -->
+            <div class="text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse my-1">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <!-- Question affichée -->
+            <div class="text-center py-2">
+                <h3 class="text-xl md:text-3xl font-extrabold text-white text-glow uppercase tracking-wider mb-1" id="questionTitle">
+                    Qui gagnerait un combat ?
+                </h3>
+                <p class="text-xs text-[#00ff66]/60 uppercase tracking-widest">[ SÉLECTIONNEZ LE CHOIX DU CHAT ]</p>
+            </div>
+
+            <!-- Grille de combat (Ceci ou Cela) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full my-2">
+                
+                <!-- Choix A -->
+                <div onclick="voteChoice('A')" class="choice-card rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden">
+                    <div class="absolute top-3 left-3 bg-[#003b13] text-[#00ff66] text-xs font-bold px-2.5 py-1 rounded border border-[#00ff66]/40">
+                        RÉPONSE 1
+                    </div>
+                    <div class="text-5xl my-6 text-center text-[#00ff66]" id="iconA">
+                        <i class="fa-solid fa-bullseye"></i>
+                    </div>
+                    <div class="text-center mb-4">
+                        <h4 class="text-2xl font-bold text-white mb-1" id="labelA">Oliver Queen</h4>
+                        <p class="text-xs text-[#00ff66]/70" id="descA">Le justicier de Star City.</p>
+                    </div>
+                    <div class="cyber-btn py-3 rounded-xl font-bold text-center text-sm uppercase tracking-wider">
+                        Sélectionner Réponse 1 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </div>
+                </div>
+
+                <!-- Choix B -->
+                <div onclick="voteChoice('B')" class="choice-card rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden" style="border-color: #00f5ff;">
+                    <div class="absolute top-3 left-3 bg-[#003b13] text-[#00f5ff] text-xs font-bold px-2.5 py-1 rounded border border-[#00f5ff]/40">
+                        RÉPONSE 2
+                    </div>
+                    <div class="text-5xl my-6 text-center text-[#00f5ff]" id="iconB">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div class="text-center mb-4">
+                        <h4 class="text-2xl font-bold text-white mb-1" id="labelB">Barry Allen</h4>
+                        <p class="text-xs text-[#00f5ff]/70" id="descB">L'homme le plus rapide du monde.</p>
+                    </div>
+                    <div class="cyber-btn py-3 rounded-xl font-bold text-center text-sm uppercase tracking-wider" style="background:#00223b; border-color:#00f5ff; color:#00f5ff;">
+                        Sélectionner Réponse 2 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Contrôles du Streamer -->
+            <div class="flex justify-between items-center pt-2 border-t border-[#003b13]">
+                <div class="flex space-x-3">
+                    <button onclick="prevRound()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-1">
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                        <span>PRÉCÉDENT</span>
+                    </button>
+                    <button onclick="skipRound()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-1">
+                        <span>ÉGALITÉ / PASSER</span>
+                        <i class="fa-solid fa-forward-step"></i>
+                    </button>
+                </div>
+                <button onclick="goToWelcome()" class="bg-[#3b000b] hover:bg-[#ff0033] text-[#ff0033] hover:text-white border border-[#ff0033] px-3 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-1">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>RESET</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Écran de Fin -->
+        <div id="endScreen" class="hidden text-center w-full holo-frame p-8 rounded-2xl shadow-2xl max-w-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#ffcc00]">
+                <i class="fa-solid fa-trophy text-5xl text-[#ffcc00] animate-bounce"></i>
+            </div>
+            <h2 class="text-3xl font-extrabold mb-3 text-[#ffcc00] text-glow uppercase tracking-wider">
+                FIN DU TIKTOK BATTLE !
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm">
+                Voici le verdict final de la communauté sur ce live :
+            </p>
+            
+            <div class="bg-black/50 p-6 rounded-xl border border-[#003b13] mb-8 flex justify-around items-center">
+                <div>
+                    <span class="text-xs text-[#00ff66] font-bold block uppercase mb-1">Victoires Option A</span>
+                    <span class="text-4xl font-extrabold text-white text-glow" id="finalScoreA">0</span>
+                </div>
+                <div class="h-12 w-px bg-[#003b13]"></div>
+                <div>
+                    <span class="text-xs text-[#00f5ff] font-bold block uppercase mb-1">Victoires Option B</span>
+                    <span class="text-4xl font-extrabold text-white text-glow" id="finalScoreB">0</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button onclick="resetGame()" class="cyber-btn flex-1 py-4 rounded-xl font-bold text-sm uppercase tracking-widest">
+                    RECOMMENCER <i class="fa-solid fa-rotate-right ml-2"></i>
+                </button>
+                <a href="index.html" class="cyber-btn flex-1 py-4 rounded-xl font-bold text-sm uppercase tracking-widest flex items-center justify-center space-x-2 text-center no-underline">
+                    <span>ACCUEIL HUB</span> <i class="fa-solid fa-house ml-2"></i>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Paramètres -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="holo-frame rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#00ff66]">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#003b13]">
+                <h3 class="text-lg font-bold text-[#ffcc00] uppercase"><i class="fa-solid fa-gear mr-2"></i> Paramètres du Live</h3>
+                <button onclick="closeSettings()" class="text-[#00ff66]/60 hover:text-[#00ff66]"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-[#00ff66]/80 uppercase mb-2">Nombre de manches</label>
+                    <select id="totalRoundsSelect" class="w-full bg-[#010803] border border-[#003b13] rounded-xl p-3 text-white font-mono text-sm focus:border-[#00ff66] outline-none">
+                        <option value="10">10 Manches (Rapide)</option>
+                        <option value="15" selected>15 Manches (Standard Live)</option>
+                        <option value="20">20 Manches (Long Live)</option>
+                    </select>
+                </div>
+                <div class="pt-2">
+                    <button onclick="saveSettings()" class="cyber-btn w-full py-3 rounded-xl font-bold text-sm uppercase tracking-wider">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10">
+        OVERWATCH PROTOCOL // TIKTOK BATTLE ENGINE
+    </footer>
+
+    <!-- Logique JavaScript -->
+    <script>
+        // Matrix Rain
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        // Audio Synth
+        let audioEnabled = false;
+        let synth = null;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+            }
+        }
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const btn = document.getElementById('audioBtn');
+            if (audioEnabled) {
+                Tone.start();
+                initAudio();
+                icon.className = "fa-solid fa-volume-high";
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span class="hidden sm:inline">SFX: ON</span>';
+            } else {
+                icon.className = "fa-solid fa-volume-xmark";
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i><span class="hidden sm:inline">SFX: OFF</span>';
+            }
+        }
+        function playTone(note = "A4") {
+            if (!audioEnabled || !synth) return;
+            try { synth.triggerAttackRelease(note, "16n"); } catch(e) {}
+        }
+
+        const originalQuestionsDatabase = [
+            {
+                category: "Légendes & Héros",
+                title: "Quel mentor préférez-vous ?",
+                a: { label: "John Diggle", desc: "Le roc, la voix de la sagesse et ex-militaire.", icon: "fa-shield-halved" },
+                b: { label: "Harrison Wells", desc: "Le génie scientifique aux multiples versions.", icon: "fa-flask" }
+            },
+            {
+                category: "Speedsters",
+                title: "Le meilleur Speedster rival ?",
+                a: { label: "Reverse-Flash", desc: "Le stratège diabolique et ennemi juré.", icon: "fa-bolt-lightning" },
+                b: { label: "Zoom", desc: "Le démon terrifiant d'Earth-2.", icon: "fa-ghost" }
+            },
+            {
+                category: "Équipes & QG",
+                title: "Quel repaire choisiriez-vous ?",
+                a: { label: "Le Bunker d'Arrow", desc: "Brut, tactique, sous le métro de Star City.", icon: "fa-warehouse" },
+                b: { label: "S.T.A.R. Labs", desc: "Futuriste, high-tech, avec la Time Vault.", icon: "fa-atom" }
+            },
+            {
+                category: "Super-Puissances",
+                title: "Quel pouvoir choisiriez-vous ?",
+                a: { label: "La Vitesse Éclair", desc: "Courir à Mach 3 et traverser le temps.", icon: "fa-running" },
+                b: { label: "Le Cri Sonique", desc: "Maîtriser le Canary Cry destructeur.", icon: "fa-volume-high" }
+            },
+            {
+                category: "Multivers",
+                title: "Quelle Terre visiteriez-vous ?",
+                a: { label: "Earth-38 (Supergirl)", desc: "Un monde lumineux et plein d'espoir.", icon: "fa-sun" },
+                b: { label: "Earth-2", desc: "Un monde rétro-futuriste fascinant.", icon: "fa-moon" }
+            },
+            {
+                category: "Légendes du Temps",
+                title: "Votre vaisseau temporel favori ?",
+                a: { label: "Le Waverider", desc: "La maison volante des Legends of Tomorrow.", icon: "fa-space-shuttle" },
+                b: { label: "Waverider Amélioré", desc: "Avec IA Gideon au top de sa forme.", icon: "fa-microchip" }
+            },
+            {
+                category: "Justiciers",
+                title: "Qui a le meilleur costume ?",
+                a: { label: "Green Arrow", desc: "Tactique avec capuche renforcée.", icon: "fa-hood-cloak" },
+                b: { label: "The Flash", desc: "En cuir rouge vif avec éclair doré.", icon: "fa-vest" }
+            },
+            {
+                category: "Armes & Gadgets",
+                title: "Votre accessoire de combat idéal ?",
+                a: { label: "L'Arc & Flèches", desc: "Explosives, grappins, cryogéniques.", icon: "fa-bullseye" },
+                b: { label: "Gantelets de Vibe", desc: "Pour ouvrir des brèches interdimensionnelles.", icon: "fa-hand-sparkles" }
+            },
+            {
+                category: "Antagonistes",
+                title: "Le meilleur grand méchant ?",
+                a: { label: "Prometheus", desc: "Un esprit machiavélique obsédé par Oliver.", icon: "fa-user-secret" },
+                b: { label: "Deathstroke", desc: "Le super-soldat au Mirakuru.", icon: "fa-skull" }
+            },
+            {
+                category: "Alliés & Hackers",
+                title: "Votre partenaire technique de génie ?",
+                a: { label: "Felicity Smoak", desc: "La reine absolue du code et des blagues.", icon: "fa-laptop-code" },
+                b: { label: "Cisco Ramon", desc: "Le créateur des gadgets et dé R&D.", icon: "fa-wand-magic-sparkles" }
+            },
+            {
+                category: "Romance & Duos",
+                title: "Le couple le plus emblématique ?",
+                a: { label: "Oliver & Felicity", desc: "L'amour au cœur des tempêtes de Star City.", icon: "fa-heart" },
+                b: { label: "Barry & Iris", desc: "Amis d'enfance devenus âmes sœurs.", icon: "fa-ring" }
+            },
+            {
+                category: "Capes & Krypton",
+                title: "Du côté de National City",
+                a: { label: "Supergirl", desc: "L'espoir incarné sous un soleil jaune.", icon: "fa-shield" },
+                b: { label: "Superman", desc: "L'Homme d'Acier classique et protecteur.", icon: "fa-globe" }
+            },
+            {
+                category: "Magie & Mystique",
+                title: "Face au paranormal",
+                a: { label: "John Constantine", desc: "L'occultiste cynique et sorcier.", icon: "fa-hat-wizard" },
+                b: { label: "Nora Darhk", desc: "La magie temporelle et mystique.", icon: "fa-fire" }
+            },
+            {
+                category: "Crossovers",
+                title: "Le meilleur méga-crossover ?",
+                a: { label: "Crisis on Earth-X", desc: "Le mariage gâché par les nazis d'une autre Terre.", icon: "fa-users-slash" },
+                b: { label: "Invasion!", desc: "La première alliance géante contre les aliens.", icon: "fa-meteor" }
+            },
+            {
+                category: "Finales Épiques",
+                title: "Le choix final",
+                a: { label: "Sauver la Ligne Temporelle", desc: "Quitte à risquer des paradoxes fous.", icon: "fa-hourglass-start" },
+                b: { label: "Protéger Star City", desc: "Jusqu'au bout de la nuit et des flèches.", icon: "fa-city" }
+            }
+        ];
+
+        let questionsDatabase = [];
+        let currentRound = 0;
+        let maxRounds = 15;
+        let scoreA = 0;
+        let scoreB = 0;
+
+        function shuffleArray(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function openSettings() {
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function saveSettings() {
+            const select = document.getElementById('totalRoundsSelect');
+            maxRounds = parseInt(select.value);
+            closeSettings();
+            resetGame();
+        }
+
+        function goToWelcome() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            playTone("C4");
+        }
+
+        function startGame() {
+            questionsDatabase = shuffleArray(originalQuestionsDatabase);
+            currentRound = 0;
+            scoreA = 0;
+            scoreB = 0;
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            loadRound();
+            playTone("G4");
+        }
+
+        function loadRound() {
+            if (currentRound >= maxRounds || currentRound >= questionsDatabase.length) {
+                endGame();
+                return;
+            }
+
+            const q = questionsDatabase[currentRound];
+            document.getElementById('categoryBadge').innerText = q.category;
+            document.getElementById('roundIndicator').innerText = `MANCHE ${currentRound + 1} / ${maxRounds}`;
+            document.getElementById('questionTitle').innerText = q.title;
+
+            document.getElementById('labelA').innerText = q.a.label;
+            document.getElementById('descA').innerText = q.a.desc;
+            document.getElementById('iconA').innerHTML = `<i class="fa-solid ${q.a.icon}"></i>`;
+
+            document.getElementById('labelB').innerText = q.b.label;
+            document.getElementById('descB').innerText = q.b.desc;
+            document.getElementById('iconB').innerHTML = `<i class="fa-solid ${q.b.icon}"></i>`;
+
+            document.getElementById('scoreA').innerText = scoreA;
+            document.getElementById('scoreB').innerText = scoreB;
+            playTone("A4");
+        }
+
+        function voteChoice(choice) {
+            if (choice === 'A') {
+                scoreA++;
+                playTone("E5");
+            } else if (choice === 'B') {
+                scoreB++;
+                playTone("E5");
+            }
+            currentRound++;
+            loadRound();
+        }
+
+        function skipRound() {
+            playTone("C5");
+            currentRound++;
+            loadRound();
+        }
+
+        function prevRound() {
+            if (currentRound > 0) {
+                currentRound--;
+                loadRound();
+            }
+        }
+
+        function endGame() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+            document.getElementById('finalScoreA').innerText = scoreA;
+            document.getElementById('finalScoreB').innerText = scoreB;
+            playTone("C6");
+        }
+
+        function resetGame() {
+            startGame();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Crisis Protocol (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.85);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px #00f5ff;
+            transform: scale(1.02);
+        }
+
+        .unit-card {
+            background: rgba(0, 30, 10, 0.9);
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            text-align: left;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .unit-card:hover:not(:disabled) {
+            background: rgba(0, 245, 255, 0.2);
+            border-color: #00f5ff;
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
+            transform: translateY(-2px);
+        }
+        .unit-card:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #334155;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-20 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-house"></i>
+                <span class="hidden sm:inline">ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-shield-halved animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow uppercase">
+                        CRISIS PROTOCOL
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60">CONSOLE DE GESTION DE CRISE</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="returnToWelcome()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">RESET</span>
+            </button>
+            <button onclick="toggleAudio()" id="audioBtn" class="cyber-btn px-3 py-2 rounded-lg text-xs flex items-center space-x-2">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                <span class="hidden sm:inline">SFX: OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-3xl mx-auto w-full relative z-10 my-4">
+
+        <!-- Écran d'accueil -->
+        <div id="welcome-view" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-triangle-exclamation text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                CRISIS PROTOCOL // COMMAND CENTER
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base">
+                [CONSOLE OVERWATCH] — Gérez les incidents multiversels critiques. Vos décisions impactent l'intégrité de la ville et les ressources de l'équipe.
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left">
+                <h3 class="text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-terminal mr-2"></i> PARAMÈTRES DE LA SESSION</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> 12 menaces multiverselles critiques à neutraliser.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour engager les options tactiques.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Évitez la faillite opérationnelle ou la destruction totale pour réussir.</li>
+                </ul>
+            </div>
+
+            <button onclick="initProtocol()" class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest">
+                INITIALISER LE PROTOCOLE <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Zone de Jeu -->
+        <div id="game-view" class="w-full hidden flex flex-col space-y-4 holo-frame p-6 rounded-xl">
+            
+            <!-- Barre de métriques -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/40 p-4 rounded-xl border border-[#003b13]">
+                <div class="flex flex-col gap-2">
+                    <div class="text-xs font-bold text-[#00ff66]/80 flex justify-between">
+                        <span>INTÉGRITÉ VILLE</span><span id="city-val">100%</span>
+                    </div>
+                    <div class="bg-[#003b13] h-3 rounded-full overflow-hidden border border-[#00ff66]/40">
+                        <div id="city-bar" class="bg-[#00ff66] h-full transition-all duration-500" style="width:100%;"></div>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <div class="text-xs font-bold text-[#00ff66]/80 flex justify-between">
+                        <span>RESSOURCES ÉQUIPE</span><span id="res-val">100%</span>
+                    </div>
+                    <div class="bg-[#003b13] h-3 rounded-full overflow-hidden border border-[#00ff66]/40">
+                        <div id="res-bar" class="bg-[#00f5ff] h-full transition-all duration-500" style="width:100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerte de sondage -->
+            <div class="text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse my-2">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <!-- Console de crise -->
+            <div class="bg-[#010803] border border-[#00ff66] rounded-xl p-6">
+                <div class="text-xs font-bold text-[#ffcc00] tracking-widest mb-2" id="crisis-id">INCIDENT #001</div>
+                <h3 class="text-xl md:text-2xl font-bold text-white text-glow mb-3" id="crisis-title">Titre de la crise</h3>
+                <p class="text-sm md:text-base text-[#00ff66]/80 leading-relaxed" id="crisis-desc">Description...</p>
+            </div>
+
+            <!-- Grille de choix / Unités -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button class="unit-card p-4 rounded-xl border border-[#003b13] flex flex-col justify-between" id="unit-0" onclick="resolveCrisis(0)">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-bold text-base text-[#00f5ff]" id="name-0">Unité 1</span>
+                        <span class="text-xs bg-[#003b13] px-2 py-1 rounded border border-[#00ff66] text-[#ffcc00]" id="cost-0">Coût: 10%</span>
+                    </div>
+                    <div class="text-xs md:text-sm text-[#00ff66]/80 mb-4" id="strat-0">Stratégie 1...</div>
+                    <div class="text-xs font-bold text-[#00f5ff] text-right">[SÉLECTIONNER RÉPONSE 1]</div>
+                </button>
+                <button class="unit-card p-4 rounded-xl border border-[#003b13] flex flex-col justify-between" id="unit-1" onclick="resolveCrisis(1)">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-bold text-base text-[#00f5ff]" id="name-1">Unité 2</span>
+                        <span class="text-xs bg-[#003b13] px-2 py-1 rounded border border-[#00ff66] text-[#ffcc00]" id="cost-1">Coût: 15%</span>
+                    </div>
+                    <div class="text-xs md:text-sm text-[#00ff66]/80 mb-4" id="strat-1">Stratégie 2...</div>
+                    <div class="text-xs font-bold text-[#00f5ff] text-right">[SÉLECTIONNER RÉPONSE 2]</div>
+                </button>
+            </div>
+
+            <!-- Rapport d'intervention -->
+            <div class="intel-report hidden bg-[#010803] border-l-4 border-[#00ff66] p-4 rounded-r-xl mt-4" id="intel-report">
+                <div class="font-bold text-sm uppercase mb-1" id="report-status" style="color: var(--accent-neon);">RAPPORT D'INTERVENTION</div>
+                <div class="text-xs md:text-sm text-white mb-4" id="report-debrief">Analyse...</div>
+                <button class="cyber-btn w-full py-3 rounded-lg font-bold uppercase tracking-wider text-sm" id="next-btn" onclick="nextPhase()">Poursuivre le Protocole</button>
+            </div>
+
+            <!-- Barre d'action basse -->
+            <div class="flex justify-between items-center pt-2 border-t border-[#003b13]">
+                <button onclick="returnToWelcome()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold">RESET SYSTÈME</button>
+                <span class="text-xs font-bold text-[#ffcc00]" id="phase-counter">Phase 1 / 12</span>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10">
+        OVERWATCH PROTOCOL // CRISIS PROTOCOL ENGINE
+    </footer>
+
+    <script>
+        // Matrix Rain
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        // Audio Synth
+        let audioEnabled = false;
+        let synth = null;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+            }
+        }
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const btn = document.getElementById('audioBtn');
+            if (audioEnabled) {
+                Tone.start();
+                initAudio();
+                icon.className = "fa-solid fa-volume-high";
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span class="hidden sm:inline">SFX: ON</span>';
+            } else {
+                icon.className = "fa-solid fa-volume-xmark";
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i><span class="hidden sm:inline">SFX: OFF</span>';
+            }
+        }
+        function playTone(note = "A4") {
+            if (!audioEnabled || !synth) return;
+            try { synth.triggerAttackRelease(note, "16n"); } catch(e) {}
+        }
+
+        const protocols = [
+            {
+                id: "INCIDENT #890-A",
+                title: "Détournement Convoi ADEOS",
+                desc: "Un convoi d'armes expérimentales aux mains d'insurgés traverse le centre-ville. Risque de dommages collatéraux majeurs.",
+                units: [
+                    { name: "Oliver Queen", strat: "Infiltration furtive et neutralisation ciblée des conducteurs.", cityImpact: -5, resImpact: -10, success: true, debrief: "Intervention chirurgicale. Le convoi est stoppé net avec un minimum de dégâts urbains." },
+                    { name: "John Diggle", strat: "Interception blindée frontale lourde.", cityImpact: -15, resImpact: -5, success: false, debrief: "Force brute efficace mais destructrice. Les infrastructures routières ont lourdement souffert." }
+                ]
+            },
+            {
+                id: "INCIDENT #112-B",
+                title: "Brèche S.T.A.R. Labs",
+                desc: "Surcharge critique de l'accélérateur de particules. Menace d'impulsion électromagnétique dévastatrice.",
+                units: [
+                    { name: "Barry Allen", strat: "Génération d'un vortex thermique pour dissiper l'énergie.", cityImpact: -8, resImpact: -15, success: true, debrief: "Vortex stabilisé. L'énergie a été évacuée sans compromettre le réseau électrique." },
+                    { name: "Cisco Ramon", strat: "Ouverture forcée d'une faille dimensionnelle de décharge.", cityImpact: -25, resImpact: -5, success: false, debrief: "Surcharge du portail. Une onde de choc a brisé les vitrines du quartier d'affaires." }
+                ]
+            },
+            {
+                id: "INCIDENT #404-C",
+                title: "Menace Chimique Métro",
+                desc: "Dispersion imminente d'un agent neurotoxique dans le nœud ferroviaire principal.",
+                units: [
+                    { name: "Ray Palmer", strat: "Incursion nanotechnologique pour sceller l'ogive de l'intérieur.", cityImpact: -5, resImpact: -20, success: true, debrief: "Activation réussie. La toxine a été neutralisée in situ." },
+                    { name: "Sara Lance", strat: "Assaut létal direct pour récupérer les codes de désamorce.", cityImpact: -18, resImpact: -10, success: false, debrief: "Fusillade intense dans les tunnels. Panique générale et évacuation chaotique." }
+                ]
+            },
+            {
+                id: "INCIDENT #731-D",
+                title: "Piratage National City",
+                desc: "Virus alien contaminant les infrastructures de défense et les réseaux satellites.",
+                units: [
+                    { name: "Kara Danvers", strat: "Extraction physique et destruction du mainframe central.", cityImpact: -20, resImpact: -5, success: false, debrief: "Serveur détruit mais blackout temporaire sur tout le secteur est." },
+                    { name: "Nia Nal", strat: "Navigation onirique pour contrer le code source à sa racine.", cityImpact: -5, resImpact: -15, success: true, debrief: "Correction logicielle invisible. Le réseau est purgé sans aucune interruption." }
+                ]
+            },
+            {
+                id: "INCIDENT #909-E",
+                title: "Anomalie Temporelle",
+                desc: "Arrivée de technologies lourdes du 22ème siècle en pleine zone résidentielle de 1942.",
+                units: [
+                    { name: "Nate Heywood", strat: "Neutralisation par absorption d'impact et camouflage.", cityImpact: -10, resImpact: -10, success: true, debrief: "Technologie sécurisée. L'anomalie est contenue discrètement." },
+                    { name: "Mick Rory", strat: "Combustion thermique totale de la zone d'atterrissage.", cityImpact: -30, resImpact: -5, success: false, debrief: "Approche par le feu. Dommages collatéraux immenses sur le patrimoine historique." }
+                ]
+            },
+            {
+                id: "INCIDENT #003-F",
+                title: "Incursion Ligue des Ombres",
+                desc: "Prise d'otages de haut rang au sommet de la tour municipale.",
+                units: [
+                    { name: "Nyssa al Ghul", strat: "Utilisation des protocoles d'infiltration internes de la Ligue.", cityImpact: -5, resImpact: -15, success: true, debrief: "Exfiltration propre. Les otages sont libres sans alerte majeure." },
+                    { name: "Slade Wilson", strat: "Assaut héliporté lourd avec usage de munitions réelles.", cityImpact: -25, resImpact: -10, success: false, debrief: "Nettoyage par le vide. La tour est partiellement inhabitable suite à l'assaut." }
+                ]
+            },
+            {
+                id: "INCIDENT #555-G",
+                title: "Méta-Humain Pyrogène",
+                desc: "Surchauffe incontrôlée d'un sujet cryo/pyro dans la zone portuaire.",
+                units: [
+                    { name: "Caitlin Snow", strat: "Abaissement thermique extrême pour neutralisation biologique.", cityImpact: -10, resImpact: -10, success: true, debrief: "Sujet stabilisé. Le secteur est gelé mais structurellement intact." },
+                    { name: "Wally West", strat: "Évacuation cinétique forcée par création de vide d'air.", cityImpact: -20, resImpact: -5, success: false, debrief: "Appel d'air massif. Effondrement de plusieurs structures légères sur les docks." }
+                ]
+            },
+            {
+                id: "INCIDENT #666-H",
+                title: "Manifestation Occulte",
+                desc: "Ouverture d'un portail dimensionnel démoniaque en zone urbaine dense.",
+                units: [
+                    { name: "John Constantine", strat: "Rituel d'enfermement et bannissement des entités.", cityImpact: -10, resImpact: -20, success: true, debrief: "Faille scellée. Dégâts psychologiques mineurs sur la population mais ville sauve." },
+                    { name: "Damien Darhk", strat: "Absorption forcée de l'énergie noire pour accroître sa puissance.", cityImpact: -35, resImpact: -5, success: false, debrief: "Trahison tactique. Énergie absorbée au prix de la santé mentale des civils environnants." }
+                ]
+            },
+            {
+                id: "INCIDENT #101-I",
+                title: "Essaim de Drones",
+                desc: "Hack militaire détournant 500 drones de combat vers le centre de contrôle.",
+                units: [
+                    { name: "Black Lightning", strat: "Impulsion électromagnétique de zone à haute fréquence.", cityImpact: -5, resImpact: -25, success: true, debrief: "Pluie de métal contrôlée. Aucun drone n'a atteint sa cible." },
+                    { name: "Thea Queen", strat: "Tir de précision de flèches IEM sur les unités de commandement.", cityImpact: -15, resImpact: -10, success: false, debrief: "Temps de réaction trop lent. Plusieurs impacts directs enregistrés sur le périmètre." }
+                ]
+            },
+            {
+                id: "INCIDENT #303-J",
+                title: "Avant-garde Alien",
+                desc: "Vaisseau éclaireur tentant un atterrissage forcé en plein centre-ville.",
+                units: [
+                    { name: "Mon-El", strat: "Interception physique en vol pour dévier la trajectoire.", cityImpact: -25, resImpact: -10, success: false, debrief: "Impact lourd amorti de justesse. Cratère important en zone commerciale." },
+                    { name: "J'onn J'onnz", strat: "Infiltration télépathique de l'équipage pour sabotage interne.", cityImpact: -5, resImpact: -20, success: true, debrief: "Vaisseau posé en douceur sans aucun choc structurel." }
+                ]
+            },
+            {
+                id: "INCIDENT #888-K",
+                title: "Sabotage Ferroviaire",
+                desc: "Train à grande vitesse piégé, fonçant vers une gare terminus bondée.",
+                units: [
+                    { name: "Mia Queen", strat: "Sabotage manuel des freins d'urgence par abordage externe.", cityImpact: -15, resImpact: -10, success: false, debrief: "Freinage trop brutal. Déraillement partiel sans pertes mais gros dégâts matériels." },
+                    { name: "Barry Allen", strat: "Ralentissement par friction cinétique parallèle.", cityImpact: -5, resImpact: -25, success: true, debrief: "Arrêt millimétré. Passagers sains et saufs, voies intactes." }
+                ]
+            },
+            {
+                id: "INCIDENT #999-L",
+                title: "Doppelgänger Hostile",
+                desc: "Infiltration d'un double maléfique hautement entraîné au QG central.",
+                units: [
+                    { name: "Oliver Queen", strat: "Affrontement singulier au sein du complexe sécurisé.", cityImpact: -10, resImpact: -15, success: true, debrief: "Menace éliminée en interne. Zéro impact sur la ville." },
+                    { name: "Kate Kane", strat: "Usage d'arsenal lourd pour débusquer la cible dans les sous-sols.", cityImpact: -30, resImpact: -10, success: false, debrief: "Dégâts structurels majeurs sur le QG. Cible en fuite." }
+                ]
+            }
+        ];
+
+        let currentPhase = 0;
+        let cityIntegrity = 100;
+        let teamResources = 100;
+
+        function updateDisplays() {
+            document.getElementById('city-val').textContent = `${cityIntegrity}%`;
+            const cityBar = document.getElementById('city-bar');
+            cityBar.style.width = `${cityIntegrity}%`;
+            
+            if(cityIntegrity > 50) cityBar.style.backgroundColor = '#00ff66';
+            else if(cityIntegrity > 20) cityBar.style.backgroundColor = '#ffcc00';
+            else cityBar.style.backgroundColor = '#ff0033';
+
+            document.getElementById('res-val').textContent = `${teamResources}%`;
+            const resBar = document.getElementById('res-bar');
+            resBar.style.width = `${teamResources}%`;
+
+            if(teamResources > 50) resBar.style.backgroundColor = '#00f5ff';
+            else if(teamResources > 20) resBar.style.backgroundColor = '#ffcc00';
+            else resBar.style.backgroundColor = '#ff0033';
+
+            document.getElementById('phase-counter').textContent = `Phase ${currentPhase + 1} / ${protocols.length}`;
+        }
+
+        function initProtocol() {
+            document.getElementById('welcome-view').classList.add('hidden');
+            document.getElementById('intel-report').classList.add('hidden');
+            document.getElementById('game-view').classList.remove('hidden');
+            currentPhase = 0;
+            cityIntegrity = 100;
+            teamResources = 100;
+            enableUnits(true);
+            updateDisplays();
+            loadPhase();
+            playTone("G4");
+        }
+
+        function returnToWelcome() {
+            document.getElementById('game-view').classList.add('hidden');
+            document.getElementById('welcome-view').classList.remove('hidden');
+            playTone("C4");
+        }
+
+        function loadPhase() {
+            if (cityIntegrity <= 0 || teamResources <= 0) {
+                endSession("ÉCHEC DU SYSTÈMES — COLLAPSE TOTAL");
+                return;
+            }
+            if (currentPhase >= protocols.length) {
+                endSession("PROTOCOLE ACHEVÉ — MENACES NEUTRALISÉES");
+                return;
+            }
+
+            const activeProtocol = protocols[currentPhase];
+            document.getElementById('crisis-id').textContent = activeProtocol.id;
+            document.getElementById('crisis-title').textContent = activeProtocol.title;
+            document.getElementById('crisis-desc').textContent = activeProtocol.desc;
+
+            for(let i=0; i<2; i++) {
+                const unit = activeProtocol.units[i];
+                document.getElementById(`name-${i}`).textContent = `Réponse ${i + 1} : ${unit.name}`;
+                document.getElementById(`cost-${i}`).textContent = `Coût: ${Math.abs(unit.resImpact)}%`;
+                document.getElementById(`strat-${i}`).innerHTML = unit.strat;
+            }
+
+            document.getElementById('intel-report').classList.add('hidden');
+            enableUnits(true);
+            playTone("A4");
+        }
+
+        function resolveCrisis(unitIndex) {
+            enableUnits(false);
+            const activeProtocol = protocols[currentPhase];
+            const chosenUnit = activeProtocol.units[unitIndex];
+
+            cityIntegrity += chosenUnit.cityImpact;
+            teamResources += chosenUnit.resImpact;
+
+            if(cityIntegrity < 0) cityIntegrity = 0;
+            if(teamResources < 0) teamResources = 0;
+
+            updateDisplays();
+
+            const statusEl = document.getElementById('report-status');
+            statusEl.textContent = chosenUnit.success ? "RAPPORT : SUCCÈS TACTIQUE" : "RAPPORT : ÉCHEC PARTIEL";
+            statusEl.style.color = chosenUnit.success ? "#00ff66" : "#ff0033";
+
+            document.getElementById('report-debrief').textContent = chosenUnit.debrief;
+            document.getElementById('intel-report').classList.remove('hidden');
+
+            if(currentPhase === protocols.length - 1 || cityIntegrity <= 0 || teamResources <= 0) {
+                document.getElementById('next-btn').textContent = "TERMINER LA SESSION";
+            } else {
+                document.getElementById('next-btn').textContent = "POURSUIVRE LE PROTOCOLE";
+            }
+
+            playTone("E5");
+        }
+
+        function enableUnits(enable) {
+            document.getElementById('unit-0').disabled = !enable;
+            document.getElementById('unit-1').disabled = !enable;
+        }
+
+        function nextPhase() {
+            if (cityIntegrity <= 0 || teamResources <= 0) {
+                endSession("ÉCHEC DU SYSTÈMES — COLLAPSE TOTAL");
+            } else if (currentPhase >= protocols.length - 1) {
+                endSession("PROTOCOLE ACHEVÉ — MENACES NEUTRALISÉES");
+            } else {
+                currentPhase++;
+                loadPhase();
+            }
+        }
+
+        function endSession(terminalState) {
+            playTone("C6");
+            document.getElementById('game-view').innerHTML = `
+                <div class="text-center py-12">
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white text-glow uppercase mb-4">
+                        ${terminalState}
+                    </h2>
+                    <p class="text-sm md:text-base text-[#00ff66]/80 mb-8">
+                        Intégrité Finale Ville : <strong class="text-white">${cityIntegrity}%</strong> | Ressources Équipe Restantes : <strong class="text-white">${teamResources}%</strong>
+                    </p>
+                    <button class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest" onclick="returnToWelcome()">Retour à l'Accueil</button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

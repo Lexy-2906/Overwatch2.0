@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Vrai ou Faux (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Share Tech Mono', 'monospace'],
+                        hero: ['Orbitron', 'sans-serif'],
+                    },
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            overflow-x: hidden;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .hero-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.85);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.2);
+        }
+
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px #00f5ff;
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-20 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 no-underline">
+                <i class="fa-solid fa-house"></i>
+                <span class="hidden sm:inline">ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-scale-balanced animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="hero-font text-xl md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow uppercase">
+                        VRAI OU FAUX // HARDCORE
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60">MODULE D'ÉVALUATION TACTIQUE</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="goToWelcome()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">RÉINITIALISER</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-3xl mx-auto w-full relative z-10 my-4">
+
+        <!-- Écran d'accueil -->
+        <div id="startScreen" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-circle-question text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="hero-font text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                VRAI OU FAUX // L'ÉPREUVE ULTIME
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base">
+                [CONSOLE OVERWATCH] — Testez la mémoire du chat à travers 25 affirmations pointues, pleines de pièges et de subtilités sur l'Arrowverse !
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left">
+                <h3 class="hero-font text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-terminal mr-2"></i> RÈGLES DU PROTOCOLE</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>25 manches</strong> au total (Vrai ou Faux).</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour voter dans le chat du live.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> Cliquez sur <strong>« Révéler la Réponse »</strong> pour afficher la vérité et l'explication.</li>
+                </ul>
+            </div>
+
+            <button onclick="startGame()" class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest hero-font">
+                LANCER LE PROTOCOLE <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Écran de Jeu Actif -->
+        <div id="gameScreen" class="w-full hidden flex flex-col space-y-4 holo-frame p-6 rounded-xl">
+            
+            <!-- Barre d'infos -->
+            <div class="flex justify-between items-center border-b border-[#003b13] pb-3">
+                <div class="hero-font text-xs uppercase tracking-widest text-[#ffcc00]" id="roundIndicator">
+                    MANCHE 1 / 25
+                </div>
+                <div class="text-xs text-[#00ff66]/80 font-bold uppercase tracking-wider">
+                    [ ANALYSE LIVE ]
+                </div>
+            </div>
+
+            <!-- Alerte de sondage clignotante -->
+            <div class="text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse my-1">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <!-- Boîte de l'affirmation -->
+            <div class="py-2 text-center">
+                <h3 class="hero-font text-xs text-[#ffcc00] font-bold mb-3 uppercase tracking-widest"><i class="fa-solid fa-bolt mr-1"></i> AFFIRMATION DU LIVE</h3>
+                <p id="statementText" class="hero-font text-xl md:text-2xl font-bold text-white mb-6 leading-relaxed text-glow">
+                    Chargement de l'affirmation...
+                </p>
+
+                <!-- Section Réponse (Cachée au départ) -->
+                <div id="answerSection" class="hidden pt-6 border-t border-[#003b13] flex flex-col items-center">
+                    <div id="resultBadge" class="px-6 py-2 rounded-xl text-xl md:text-2xl font-black hero-font uppercase tracking-wider mb-4 shadow-lg">
+                        VRAI
+                    </div>
+                    <p id="explanationText" class="text-xs md:text-sm text-[#00ff66]/90 max-w-xl italic leading-relaxed font-mono">
+                        Explication détaillée...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="flex justify-between items-center pt-2">
+                <button id="revealBtn" onclick="revealAnswer()" class="cyber-btn px-6 py-3 rounded-lg text-sm font-bold uppercase tracking-wider hero-font">
+                    RÉVÉLER LA RÉPONSE <i class="fa-solid fa-eye ml-2"></i>
+                </button>
+                <button id="nextBtn" onclick="nextRound()" class="cyber-btn hidden px-6 py-3 rounded-lg text-sm font-bold uppercase tracking-wider hero-font">
+                    MANCHE SUIVANTE <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Écran de Fin -->
+        <div id="endScreen" class="hidden text-center w-full holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-award text-5xl text-[#ffcc00] animate-bounce"></i>
+            </div>
+            <h2 class="hero-font text-3xl font-bold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                RAPPORT DE FIN DE MISSION
+            </h2>
+            <p class="text-xl text-white mb-6">
+                Les 25 manches du Vrai ou Faux sont passées. Le chat a-t-il survécu ?
+            </p>
+            
+            <div class="bg-black/60 p-4 rounded-xl border border-[#003b13] mb-6">
+                <span class="hero-font text-xl font-bold text-[#ffcc00]">GG À LA COMMUNAUTÉ !</span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button onclick="startGame()" class="cyber-btn flex-1 py-4 rounded-lg font-bold uppercase hero-font">
+                    RECOMMENCER <i class="fa-solid fa-rotate-right ml-2"></i>
+                </button>
+                <a href="index.html" class="cyber-btn flex-1 py-4 rounded-lg font-bold uppercase hero-font flex items-center justify-center space-x-2 text-center no-underline">
+                    <span>ACCUEIL HUB</span> <i class="fa-solid fa-house ml-2"></i>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bouton Reset Flottant -->
+    <button onclick="goToWelcome()" class="fixed right-6 bottom-6 cyber-btn px-4 py-3 rounded-xl text-xs flex items-center space-x-2 font-bold shadow-2xl z-50">
+        <i class="fa-solid fa-rotate-right text-[#00ff66]"></i>
+        <span>RESET PROTOCOLE</span>
+    </button>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10">
+        OVERWATCH PROTOCOL // VRAI OU FAUX ENGINE
+    </footer>
+
+    <script>
+        // Matrix Rain
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        const questionsDatabase = [
+            {
+                statement: "Dans le crossover Crisis on Earth-X, le double maléfique d'Oliver Queen (Dark Arrow) est le dirigeant suprême de la Terre-X et le mari d'Overgirl.",
+                isTrue: true,
+                explanation: "C'est VRAI. Dark Arrow et Overgirl mènent l'invasion nazie de la Terre-X pour s'emparer du cœur de Kara."
+            },
+            {
+                statement: "Avant de devenir The Atom, Ray Palmer a racheté Queen Consolidated pour la rebaptiser immédiatement Wayne Enterprises.",
+                isTrue: false,
+                explanation: "C'est FAUX. Il a rebaptisé l'entreprise « Palmer Technologies », et non Wayne Enterprises."
+            },
+            {
+                statement: "Dans The Flash, Harrison Wells d'Earth-2 est en réalité le super-vilain speedster connu sous le pseudonyme de Zoom.",
+                isTrue: false,
+                explanation: "C'est FAUX. Zoom est Hunter Zolomon. Harrison Wells d'Earth-2 est un brillant scientifique père de Jesse Quick."
+            },
+            {
+                statement: "John Constantine fait sa toute première apparition dans l'Arrowverse au sein de la saison 4 de la série Arrow.",
+                isTrue: true,
+                explanation: "C'est VRAI. Il vient prêter main-forte à Oliver pour restaurer l'âme de Sara Lance dans le noir."
+            },
+            {
+                statement: "Sur la Terre-38, le blason en forme de 'S' sur le costume de Supergirl signifie officiellement « espoir » sur Krypton.",
+                isTrue: true,
+                explanation: "C'est VRAI. C'est le symbole de la maison d'El, qui représente l'espoir."
+            },
+            {
+                statement: "Le QG principal des Legends of Tomorrow est un vaisseau temporel appelé le Waverider.",
+                isTrue: true,
+                explanation: "C'est VRAI. Piloté par l'IA Gideon, il traverse les époques pour corriger les aberrations."
+            },
+            {
+                statement: "Malcolm Merlyn (The Dark Archer) n'a jamais réussi à enfiler l'habit de Ra's al Ghul au cours de sa vie.",
+                isTrue: false,
+                explanation: "C'est FAUX. Il a brièvement dirigé la Ligue des Assassins et porté le titre de Ra's al Ghul après la fin de la saison 3, suite aux accords de succession avec Oliver Queen."
+            },
+            {
+                statement: "Dans The Flash, le véritable nom civil de l'antagoniste Savitar est une rémanence temporelle de Barry Allen lui-même.",
+                isTrue: true,
+                explanation: "C'est VRAI. Savitar est un double futuriste rejeté par l'équipe."
+            },
+            {
+                statement: "La ville protégée par Oliver Queen s'appelle à l'origine Starling City avant d'être officiellement renommée Star City.",
+                isTrue: true,
+                explanation: "C'est VRAI. Elle a été renommée en hommage à Ray Palmer après sa disparition présumée."
+            },
+            {
+                statement: "Le personnage de Batwoman (Kate Kane) découvre l'existence de la Batcave de Bruce Wayne dès le premier épisode de sa propre série.",
+                isTrue: true,
+                explanation: "C'est VRAI. Elle tombe par hasard sur l'antre abandonnée de son cousin Bruce à Gotham."
+            },
+            {
+                statement: "Thea Queen a hérité de son nom de guerrière « Speedy » directement de Roy Harper.",
+                isTrue: false,
+                explanation: "C'est FAUX. C'était le surnom qu'Oliver donnait à Thea lorsqu'elle était jeune, et Roy l'a ensuite adoptée comme partenaire."
+            },
+            {
+                statement: "Le père biologique de Felicity Smoak est le dangereux hacker cybercriminel connu sous le nom de The Calculator.",
+                isTrue: true,
+                explanation: "C'est VRAI. Noah Kuttler est son père biologique."
+            },
+            {
+                statement: "Sur la Terre-1, le détective Joe West a découvert le secret de Barry Allen (qu'il est The Flash) dès le début de la série dans l'épisode 2 de la saison 1.",
+                isTrue: true,
+                explanation: "C'est VRAI. Il apprend la vérité de manière fulgurante à la fin de l'épisode 2 (« Fastest Man Alive ») lorsqu'il le voit sauver sa vie face à Danton Black."
+            },
+            {
+                statement: "L'arme fétiche de Sara Lance en tant que White Canary est un bâton énergétique de type Bō.",
+                isTrue: true,
+                explanation: "C'est VRAI. Elle manie à la perfection les bâtons bō et les lames de la Ligue."
+            },
+            {
+                statement: "Dans la saison 5 d'Arrow, le véritable nom civil du tueur en série Prometheus n'est pas Adrian Chase, mais Simon Morrison.",
+                isTrue: true,
+                explanation: "C'est VRAI. Simon Morrison a usurpé l'identité d'Adrian Chase (le procureur) pour mener sa vendetta contre Oliver Queen."
+            },
+            {
+                statement: "Dans Supergirl, J'onn J'onzz a pris l'apparence de Hank Henshaw pour diriger secrètement le DEO.",
+                isTrue: true,
+                explanation: "C'est VRAI. Le vrai Hank Henshaw est mort, et le Limonien Martien a pris sa place par promesse envers Jeremiah Danvers."
+            },
+            {
+                statement: "Cisco Ramon a créé lui-même le sérum anti-méta-humains dès la première saison de The Flash.",
+                isTrue: false,
+                explanation: "C'est FAUX. Cisco (et Caitlin) ne conçoivent le remède anti-méta-humains que bien plus tard, au cours de la saison 5 (pour neutraliser Cicada)."
+            },
+            {
+                statement: "Le costume d'Arsenal (Roy Harper) est entièrement jaune et rouge dès sa première apparition sur le terrain.",
+                isTrue: false,
+                explanation: "C'est FAUX. Son costume est principalement rouge écarlate (d'où le nom Arsenal)."
+            },
+            {
+                statement: "L'île de Lian Yu, où Oliver Queen a passé 5 ans, signifie littéralement « Purgatoire » en mandarin.",
+                isTrue: true,
+                explanation: "C'est VRAI. C'est la traduction exacte du nom de l'île."
+            },
+            {
+                statement: "Dans Legends of Tomorrow, Mick Rory (Heat Wave) déteste écrire des romans et n'a aucun talent littéraire caché.",
+                isTrue: false,
+                explanation: "C'est FAUX. Il écrit secrètement des romans de science-fiction à succès sous un pseudonyme féminin !"
+            },
+            {
+                statement: "Le vilain Damien Darhk tire ses pouvoirs mystiques d'une ancienne idole alimentée par la mort et la destruction.",
+                isTrue: true,
+                explanation: "C'est VRAI. Il utilise la magie noire de l'Idole de Khushu."
+            },
+            {
+                statement: "Wally West (Kid Flash) a obtenu ses pouvoirs de vitesse directement en étant frappé par la foudre de la Speed Force dans le laboratoire de Barry.",
+                isTrue: false,
+                explanation: "C'est FAUX. Il a obtenu ses pouvoirs suite à l'exposition au cocon de la Philosopher's Stone / Flashpoint orchestrée par Alchemy."
+            },
+            {
+                statement: "La mère d'Oliver Queen, Moira Queen, a été assassinée par Slade Wilson sous les yeux d'Oliver et Thea.",
+                isTrue: true,
+                explanation: "C'est VRAI. C'est l'un des drames fondateurs de la saison 2 d'Arrow."
+            },
+            {
+                statement: "Le journal intime que portait le père d'Oliver comprenait une liste de criminels intouchables à abattre.",
+                isTrue: true,
+                explanation: "C'est VRAI. C'est la fameuse liste transmise par Robert Queen (« You have failed this city »)."
+            },
+            {
+                statement: "À la fin de la série Arrow, Oliver Queen fusionne avec le Multivers pour devenir le Spectre cosmique.",
+                isTrue: true,
+                explanation: "C'est VRAI. Il se sacrifie lors de Crisis on Infinite Earths pour recréer l'univers en tant que Spectre."
+            }
+        ];
+
+        let currentRound = 0;
+        const maxRounds = questionsDatabase.length;
+
+        function goToWelcome() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+        }
+
+        function startGame() {
+            currentRound = 0;
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            loadRound();
+        }
+
+        function loadRound() {
+            if (currentRound >= maxRounds) {
+                endGame();
+                return;
+            }
+
+            const q = questionsDatabase[currentRound];
+            document.getElementById('roundIndicator').innerText = `MANCHE ${currentRound + 1} / ${maxRounds}`;
+            document.getElementById('statementText').innerText = q.statement;
+            document.getElementById('explanationText').innerText = q.explanation;
+
+            document.getElementById('answerSection').classList.add('hidden');
+            document.getElementById('revealBtn').classList.remove('hidden');
+            document.getElementById('nextBtn').classList.add('hidden');
+        }
+
+        function revealAnswer() {
+            const q = questionsDatabase[currentRound];
+            const badge = document.getElementById('resultBadge');
+
+            if (q.isTrue) {
+                badge.innerText = "VRAI";
+                badge.className = "px-6 py-2 rounded-xl text-xl md:text-2xl font-black hero-font uppercase tracking-wider mb-4 shadow-lg bg-[#00ff66] text-[#010803]";
+            } else {
+                badge.innerText = "FAUX";
+                badge.className = "px-6 py-2 rounded-xl text-xl md:text-2xl font-black hero-font uppercase tracking-wider mb-4 shadow-lg bg-[#ff0033] text-white";
+            }
+
+            document.getElementById('answerSection').classList.remove('hidden');
+            document.getElementById('revealBtn').classList.add('hidden');
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        function nextRound() {
+            currentRound++;
+            loadRound();
+        }
+
+        function endGame() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

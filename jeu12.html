@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrowverse — Quiz 100% Précis (Overwatch HUD)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        felicityGreen: '#00ff66',
+                        cyberCyan: '#00f5ff',
+                        cyberRed: '#ff0033',
+                        cyberYellow: '#ffcc00',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #010803;
+            color: #00ff66;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .holo-frame {
+            background: rgba(2, 22, 10, 0.85);
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+        }
+
+        .cyber-btn {
+            background: #003b13;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .cyber-btn:hover {
+            background: #00f5ff;
+            color: #010803;
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px #00f5ff;
+            transform: scale(1.02);
+        }
+
+        .answer-btn {
+            background: rgba(0, 30, 10, 0.9);
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .answer-btn:hover:not(:disabled) {
+            background: rgba(0, 245, 255, 0.2);
+            border-color: #00f5ff;
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
+        }
+        .answer-btn.correct {
+            background: rgba(0, 255, 102, 0.4) !important;
+            border-color: #00ff66 !important;
+            color: #fff !important;
+            box-shadow: 0 0 20px #00ff66;
+        }
+        .answer-btn.incorrect {
+            background: rgba(255, 0, 51, 0.4) !important;
+            border-color: #ff0033 !important;
+            color: #fff !important;
+            box-shadow: 0 0 20px #ff0033;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between relative">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- En-tête permanent -->
+    <header class="w-full py-4 px-6 border-b border-[#003b13] bg-[#020604]/90 backdrop-blur-md flex justify-between items-center z-25 sticky top-0">
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="cyber-btn px-3 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-house"></i>
+                <span class="hidden sm:inline">ACCUEIL HUB</span>
+            </a>
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#003b13] border border-[#00ff66] p-2 rounded-xl text-[#00ff66] font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-brain animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wider text-[#00ff66] text-glow uppercase">
+                        QUIZ // ARROWVERSE
+                    </h1>
+                    <p class="text-xs text-[#00ff66]/60">MODULE D'ÉVALUATION QUANTIQUE</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="resetGame()" class="cyber-btn px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">RÉINITIALISER</span>
+            </button>
+            <button onclick="toggleAudio()" id="audioBtn" class="cyber-btn px-3 py-2 rounded-lg text-xs flex items-center space-x-2">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                <span class="hidden sm:inline">SFX: OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone Centrale -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-3xl mx-auto w-full relative z-10 my-4">
+
+        <!-- Écran d'accueil / Règles -->
+        <div id="startScreen" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-circle-question text-5xl text-[#00ff66] animate-pulse"></i>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                QUIZ EXPERT // QUESTIONS CANONIQUES
+            </h2>
+            <p class="text-[#00ff66]/70 mb-6 text-sm md:text-base">
+                [CONSOLE OVERWATCH] — Testez vos connaissances précises sur l'Arrowverse. Une sélection aléatoire de **20 questions** est générée à partir d'une base rigoureuse de questions officielles.
+            </p>
+            
+            <div class="bg-[#020604]/90 p-6 rounded-xl border border-[#003b13] mb-8 text-left">
+                <h3 class="text-lg font-bold text-[#ffcc00] mb-3"><i class="fa-solid fa-terminal mr-2"></i> RÈGLES DU PROTOCOLE</h3>
+                <ul class="space-y-2 text-xs md:text-sm text-[#00ff66]/80">
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>20 questions</strong> par session tirées au hasard.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> <strong>Répondez dans le sondage en direct</strong> pour voter et élire la bonne réponse avec le chat.</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> 1 minute 30 par question (90 secondes chrono).</li>
+                    <li><i class="fa-solid fa-chevron-right text-[#00ff66] mr-2"></i> 4 réponses possibles préfixées de <strong>Réponse 1</strong> à <strong>Réponse 4</strong>.</li>
+                </ul>
+            </div>
+
+            <button onclick="startGame()" class="cyber-btn w-full py-4 text-lg font-bold rounded-xl uppercase tracking-widest">
+                LANCER LE QUIZ <i class="fa-solid fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Écran du Quiz -->
+        <div id="quizScreen" class="w-full hidden flex flex-col space-y-4 holo-frame p-6 rounded-xl">
+            
+            <!-- Barre d'état (Question actuelle + Chrono) -->
+            <div class="flex justify-between items-center border-b border-[#003b13] pb-3">
+                <div class="text-xs uppercase tracking-widest text-[#00ff66]/80" id="questionCounter">
+                    QUESTION 1 / 20
+                </div>
+                <div class="flex items-center space-x-2 bg-black/60 px-3 py-1 rounded border border-[#00ff66]/40">
+                    <i class="fa-solid fa-stopwatch text-[#ffcc00] animate-pulse"></i>
+                    <span id="timerDisplay" class="font-bold text-[#ffcc00] text-lg">01:30</span>
+                </div>
+            </div>
+
+            <!-- Alerte de sondage clignotante -->
+            <div class="text-center bg-[#ff0033]/10 border border-[#ff0033] py-2 rounded-lg animate-pulse my-1">
+                <span class="text-sm md:text-base font-extrabold text-[#ff0033] uppercase tracking-widest">
+                    <i class="fa-solid fa-square-poll-vertical mr-2"></i> RÉPONDRE DANS LE SONDAGE
+                </span>
+            </div>
+
+            <!-- Intitulé de la question -->
+            <div class="py-2">
+                <h3 id="questionText" class="text-lg md:text-xl text-white font-bold leading-relaxed text-glow">
+                    Chargement de la question...
+                </h3>
+            </div>
+
+            <!-- Grille des 4 réponses -->
+            <div class="grid grid-cols-1 gap-3" id="answersContainer">
+                <!-- Les boutons de réponse seront injectés ici -->
+            </div>
+
+            <!-- Bouton Suivant -->
+            <div class="pt-4 flex justify-end">
+                <button id="nextBtn" onclick="nextQuestion()" class="cyber-btn px-6 py-3 rounded-lg text-sm font-bold uppercase tracking-wider hidden">
+                    QUESTION SUIVANTE <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Écran de Fin -->
+        <div id="endScreen" class="text-center w-full holo-frame p-8 rounded-2xl shadow-2xl hidden">
+            <div class="inline-block p-4 bg-[#003b13] rounded-full mb-6 border border-[#00ff66]">
+                <i class="fa-solid fa-award text-5xl text-[#ffcc00] animate-bounce"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-3 text-[#00ff66] text-glow uppercase tracking-wider">
+                RAPPORT DE FIN DE MISSION
+            </h2>
+            <p class="text-xl text-white mb-6" id="finalScoreText">
+                Score : 0 / 20
+            </p>
+            <div class="flex justify-center space-x-4">
+                <button onclick="startGame()" class="cyber-btn px-6 py-3 rounded-lg font-bold uppercase">
+                    RECOMMENCER <i class="fa-solid fa-rotate-right ml-2"></i>
+                </button>
+                <a href="index.html" class="cyber-btn px-6 py-3 rounded-lg font-bold uppercase flex items-center">
+                    RETOUR HUB <i class="fa-solid fa-house ml-2"></i>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-3 text-center text-xs text-[#00ff66]/40 border-t border-[#003b13] z-10">
+        OVERWATCH PROTOCOL // ARROWVERSE QUIZ ENGINE
+    </footer>
+
+    <script>
+        // Matrix Rain
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$';
+        const fontSize = 14;
+        let columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 8, 3, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            drops.forEach((drop, i) => {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(drawMatrix, 35);
+
+        // Audio Synth
+        let audioEnabled = false;
+        let synth = null;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+            }
+        }
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const btn = document.getElementById('audioBtn');
+            if (audioEnabled) {
+                Tone.start();
+                initAudio();
+                icon.className = "fa-solid fa-volume-high";
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span class="hidden sm:inline">SFX: ON</span>';
+            } else {
+                icon.className = "fa-solid fa-volume-xmark";
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i><span class="hidden sm:inline">SFX: OFF</span>';
+            }
+        }
+        function playTone(note = "A4") {
+            if (!audioEnabled || !synth) return;
+            try { synth.triggerAttackRelease(note, "16n"); } catch(e) {}
+        }
+
+        // --- BASE DE QUESTIONS 100% PRÉCISES ET SANS FLOU ---
+        const fullQuestionDatabase = [
+            // --- SÉRIE ARROW ---
+            { q: "Quel est le prénom du père d'Oliver Queen, dont le carnet noir inspire sa liste de cibles ?", options: ["Robert Queen", "Walter Steele", "Frank Hunt", "Arthur King"], answer: 0 },
+            { q: "Quel nom de code Felicity Smoak adopte-t-elle lorsqu'elle aide l'équipe en tant que hackeuse ?", options: ["Overwatch", "Oracle", "Black Siren", "Vixen"], answer: 0 },
+            { q: "Quel est le nom de l'île sur laquelle Oliver s'échoue au début de la série ?", options: ["Lian Yu", "Themyscira", "Corto Maltese", "Kasnia"], answer: 0 },
+            { q: "Quel antagoniste de la saison 1 est le père de Tommy Merlyn ?", options: ["Malcolm Merlyn", "Slade Wilson", "Ra's al Ghul", "Damien Darhk"], answer: 0 },
+            { q: "Quel pseudonyme portait Malcolm Merlyn lorsqu'il terrorisait Starling City en tant qu'archer sombre ?", options: ["Dark Archer", "Merlyn l'Enchanteur", "Black Arrow", "The Magician"], answer: 0 },
+            { q: "Quel sérum confère une force surhumaine et une rage incontrôlable dans la saison 2 ?", options: ["Mirakuru", "Lazarus Pit", "Tachyon", "Velocity-9"], answer: 0 },
+            { q: "Quel mercenaire aux yeux borgnes est l'ancien ami d'Oliver devenu le grand méchant de la saison 2 ?", options: ["Slade Wilson (Deathstroke)", "Deadshot (Floyd Lawton)", "Billy Wintergreen", "Merlyn"], answer: 0 },
+            { q: "Quel personnage féminin endosse le rôle de Speedy après l'avoir récupéré de Roy ?", options: ["Thea Queen", "Mia Smoak", "Emiko Queen", "Evelyn Sharp"], answer: 0 },
+            { q: "Quel est le nom de code de John Diggle sur le terrain ?", options: ["Spartan", "Guardian", "Titan", "Ghost"], answer: 0 },
+            { q: "Qui tue tragiquement Moira Queen à la fin de la saison 2 ?", options: ["Slade Wilson", "Malcolm Merlyn", "Sebastian Blood", "Oliver Queen"], answer: 0 },
+            { q: "Quel nom porte la société de transport maritime fondée par la famille Queen ?", options: ["Queen Consolidated", "Queen Industries", "Starling Shipping", "Queen Maritime"], answer: 0 },
+            { q: "Quel milliardaire et inventeur rachète Queen Consolidated dans la saison 3 ?", options: ["Ray Palmer", "Bruce Wayne", "Maxwell Lord", "Lex Luthor"], answer: 0 },
+            { q: "Quel est le nom de l'organisation terroriste dirigée par Ra's al Ghul ?", options: ["League of Assassins", "H.I.V.E.", "The Ninth Circle", "The Quadrant"], answer: 0 },
+            { q: "Quel titre Ra's al Ghul cherche-t-il à imposer à Oliver dans la saison 3 ?", options: ["Le nouveau Ra's al Ghul", "L'Héritier du Démon", "Le Maître des Ombres", "Le Gardien de Nanda Parbat"], answer: 1 },
+            { q: "Quel nom porte le bassin magique de la Ligue des Assassins qui redonne la vie et la jeunesse ?", options: ["Puits de Lazare (Lazarus Pit)", "Fontaine de Jouvence", "Bassin d'Immortalité", "Source d'Ombre"], answer: 0 },
+            { q: "Quel méchant mystique et manipulateur de ki dirige le groupe H.I.V.E. dans la saison 4 ?", options: ["Damien Darhk", "Ra's al Ghul", "Ricardo Diaz", "Cayden James"], answer: 0 },
+            { q: "Quel est le prénom de la femme de Damien Darhk ?", options: ["Ruve Darhk", "Nora Darhk", "Talia al Ghul", "Alena"], answer: 0 },
+            { q: "Quel redoutable procureur s'avère être le psychopathe masqué Prometheus dans la saison 5 ?", options: ["Adrian Chase", "Vincent Sobel", "Paul Quentin", "Stan Dover"], answer: 0 },
+            { q: "Quel est le véritable nom de Prometheus révélé dans la série ?", options: ["Simon Morrison", "Josh Clayton", "Robert Chase", "Adrian Green"], answer: 0 },
+            { q: "Comment s'appelle l'île où se déroule le grand final explosif de la saison 5 contre Adrian Chase ?", options: ["Lian Yu", "Kasnia", "Hong Kong Island", "Gruzinia"], answer: 0 },
+            { q: "Quel caïd impitoyable de la pègre de Star City prend le contrôle de la ville et de la police dans la saison 6 ?", options: ["Ricardo Diaz (The Dragon)", "Cayden James", "Anatoly Knyazev", "Cain"], answer: 0 },
+            { q: "Dans quelle prison fédérale de haute sécurité Oliver est-il incarcéré au début de la saison 7 ?", options: ["Slabside", "Iron Heights", "Belle Reve", "Blackgate"], answer: 0 },
+            { q: "Quel criminel redoutable et ancien membre de la Suicide Squad partage la cellule d'Oliver à Slabside ?", options: ["Ben Turner (Bronze Tiger)", "Floyd Lawton", "Captain Boomerang", "Count Vertigo"], answer: 0 },
+            { q: "Quel groupe de mercenaires élites redoutables est engagé par Ricardo Diaz pour traquer l'équipe Arrow ?", options: ["Les Longbow Hunters", "La League of Assassins", "The Ninth Circle", "H.I.V.E."], answer: 0 },
+            { q: "Quel est le nom de la fille d'Oliver et Felicity dans le futur (saison 7/8) ?", options: ["Mia Smoak", "Zoe Ramirez", "Sara Lance", "Emiko Queen"], answer: 0 },
+            { q: "Quel est le nom de code de Mia Smoak lorsqu'elle combat le crime dans le futur de Star City ?", options: ["Green Arrow", "Black Canary", "Speedy", "Overwatch"], answer: 0 },
+            { q: "Quel fils illégitime de Robert Queen et demi-frère d'Oliver apparaît dans la saison 7 ?", options: ["Emiko Queen (Adcock)", "William Clayton", "Connor Hawke", "Robert Jr."], answer: 0 },
+            { q: "Quel être cosmique énigmatique recrute Oliver pour empêcher la Crise dans la saison 8 ?", options: ["The Monitor (Mar Novu)", "The Anti-Monitor", "Parijan", "Despero"], answer: 0 },
+            { q: "Quel pouvoir ultime l'Anti-Monitor cherche-t-il à détruire à travers tout le multivers ?", options: ["Le Multivers tout entier (Infinite Earths)", "La Speed Force", "Le Livre du Destin", "Le Puits de Lazare"], answer: 0 },
+            { q: "Quel est le nom du tout dernier épisode de la série Arrow (Saison 8, Épisode 10) ?", options: ["Fadeout", "Sacrifice", "Lian Yu", "Starling City"], answer: 0 },
+            { q: "Quel détective de la police de Starling City devient le père de substitution de Laurel et Sara ?", options: ["Quentin Lance", "Lucas Hilton", "Bill Daley", "Frank Pike"], answer: 0 },
+            { q: "Quel est le prénom de la mère d'Oliver et Thea ?", options: ["Moira Queen", "Lillian Luthor", "Nora Allen", "Dinah Drake"], answer: 0 },
+            { q: "Quel archer expert et ancien partenaire amoureux d'Oliver sur l'île est la mère de William ?", options: ["Aucune (c'est Samantha Clayton, une civile)", "Shado", "Tatsu Yamashiro", "Nyssa al Ghul"], answer: 0 },
+            { q: "Quel est le nom de la sœur jumelle de Shado qui cherche à venger sa mort dans la saison 2 ?", options: ["Mei", "Tatsu", "Nyssa", "Nora"], answer: 0 },
+            { q: "Quel mercenaire expert en armes à feu et tireur d'élite est connu sous le nom de Deadshot ?", options: ["Floyd Lawton", "Edward Fyers", "Bill Wintergreen", "Christopher Chance"], answer: 0 },
+            { q: "Quel est le nom du leader impitoyable du mercenaire d'Opération Eden dans les flashbacks de Lian Yu (S1) ?", options: ["Edward Fyers", "Konstantin Kovar", "Baron Reiter", "Maseo"], answer: 0 },
+            { q: "Quel sorcier et mystique ténébreux dirige l'organisation criminelle de l'île dans les flashbacks de la saison 4 ?", options: ["Baron Reiter (Baron Wallace)", "Damien Darhk", "Ra's al Ghul", "Merlyn"], answer: 0 },
+            { q: "Quel est le nom de la femme de Maseo Yamashiro qui entraîne Oliver à Hong Kong (S3) ?", options: ["Tatsu Yamashiro (Katana)", "Shado", "Nyssa", "Mei"], answer: 0 },
+            { q: "Quel est le prénom de leur fils tragiquement décédé qui brise le couple de Maseo et Tatsu ?", options: ["Akio Yamashiro", "William", "Connor", "Rene"], answer: 0 },
+            { q: "Quel chef de la Bratva russe devient le parrain d'Oliver et son contact à Moscou ?", options: ["Anatoly Knyazev", "Gregor", "Kovar", "Viktor"], answer: 0 },
+            { q: "Quel est le pseudonyme criminel d'Anatoly Knyazev dans les comics et l'univers DC ?", options: ["KGBeast", "The Beast", "Anatoly the Red", "Tsar"], answer: 0 },
+            { q: "Quel redoutable inventeur de nanotechnologies crée le virus 'Thanatos' et s'oppose à Felicity ?", options: ["Cooper Seltz", "The Calculator", "Ray Palmer", "Curtis Holt"], answer: 0 },
+            { q: "Quel est le nom du premier petit ami geek de Felicity dans la saison 1 avant qu'elle ne rejoigne l'équipe ?", options: ["Cooper Seltz", "Barry Allen", "Ray Palmer", "Curtis Holt"], answer: 0 },
+            { q: "Quel génie de la technologie, médaillé olympique de décathlon, rejoint l'équipe Arrow sous le nom de Mr. Terrific ?", options: ["Curtis Holt", "Rene Ramirez", "Dinah Drake", "Rory Regan"], answer: 0 },
+            { q: "Quel justicier au masque de hockey, ancien béret vert, manie les armes à feu dans l'équipe sous le nom de Wild Dog ?", options: ["Rene Ramirez", "Curtis Holt", "Roy Harper", "Vince Sobel"], answer: 0 },
+            { q: "Quel est le nom de la fille de Rene Ramirez, pour la garde de laquelle il se bat acharnément ?", options: ["Zoe Ramirez", "Mia", "Sara", "Emily"], answer: 0 },
+            { q: "Quel ancien membre des forces spéciales porte les loques de la 'Ragman' après la destruction de Havenrock ?", options: ["Rory Regan (Ragman)", "Rene Ramirez", "Dinah Drake", "Diggle"], answer: 0 },
+            { q: "Quelle ville voisine de Starling City est détruite par une ogive nucléaire sous la direction de Damien Darhk ?", options: ["Havenrock", "Blüdhaven", "Coast City", "Central City"], answer: 0 },
+            { q: "Quel est le nom de la super-héroïne dotée d'un cri sonique introduite dans la saison 5 ?", options: ["Dinah Drake", "Laurel Lance", "Evelyn Sharp", "Siren"], answer: 0 },
+            { q: "Quel était le nom de code secret de Dinah Drake dans la police avant d'intégrer l'équipe ?", options: ["Aucun, elle était infiltrée sous couverture en tant qu'agent de police", "Black Canary direct", "Agent 33", "Bird of Prey"], answer: 0 },
+            { q: "Quel membre de la famille Al Ghul est la sœur de Nyssa et redoutable maîtresse d'armes ?", options: ["Talia al Ghul", "Nox", "Maya", "Sasha"], answer: 0 },
+            { q: "Quel acteur incarne le personnage récurrent de Roy Harper (Arsenal) dans la série ?", options: ["Colton Haynes", "Stephen Amell", "David Ramsey", "Echo Kellum"], answer: 0 },
+            { q: "Quel alias criminel utilise Laurel Lance lorsqu'elle vient de Terre-2 et combat l'équipe ?", options: ["Black Siren", "White Canary", "Siren-X", "Killer Frost"], answer: 0 },
+            { q: "Quel personnage se révèle être le mystérieux Vigilante dans la saison 6 (ancien partenaire de Dinah) ?", options: ["Vince Sobel", "Agent Watson", "Nick Anastas", "Samanda Watson"], answer: 0 },
+            { q: "Quel nom porte la super-arme technologique construite par Cayden James dans la saison 6 ?", options: ["The Thanatos Device", "Omni-Core", "Helix Grid", "Starfire Engine"], answer: 0 },
+            { q: "Quel est le nom de l'agent du FBI qui enquête obstinément sur Oliver Queen dans la saison 6 ?", options: ["Agent Samanda Watson", "Agent Liberty", "Agent Danvers", "Agent King"], answer: 0 },
+            { q: "Quel acteur incarne le redoutable méchant Slade Wilson (Deathstroke) ?", options: ["Manu Bennett", "John Barrowman", "Neal McDonough", "Kirk Acevedo"], answer: 0 },
+            { q: "Quel acteur incarne le brillant et machiavélique Malcolm Merlyn dans la série ?", options: ["John Barrowman", "Manu Bennett", "Paul Blackthorne", "David Nykl"], answer: 0 },
+            { q: "Quel acteur incarne le détective puis capitaine Quentin Lance ?", options: ["Paul Blackthorne", "Colton Haynes", "Echo Kellum", "Rick Gonzalez"], answer: 0 },
+            { q: "Quel acteur incarne le hacker de génie Curtis Holt (Mr. Terrific) ?", options: ["Echo Kellum", "David Ramsey", "Stephen Amell", "Rick Gonzalez"], answer: 0 },
+            { q: "Quel plat rapide l'équipe Arrow commande-t-elle sans cesse dans le bunker lors des longues nuits de piratage ?", options: ["Big Belly Burger", "Pizza de chez Luigi", "Tacos de Starling", "Sandwichs de Joe"], answer: 0 },
+            { q: "Quel est le nom de code militaire de l'unité secrète à laquelle appartenait John Diggle en Afghanistan ?", options: ["US Army Special Forces (Green Berets)", "Navy SEALs", "Delta Force", "Marines Recon"], answer: 0 },
+            { q: "Quel est le prénom du frère décédé de John Diggle dont la mort est au cœur de l'intrigue de la saison 4 ?", options: ["Andy Diggle", "Robert Diggle", "James Diggle", "Thomas Diggle"], answer: 0 },
+            { q: "Qui est contraint de tuer Andy Diggle pour protéger sa famille dans la saison 4 ?", options: ["John Diggle", "Oliver Queen", "Lyla Michaels", "Thea Queen"], answer: 0 },
+            { q: "Quel est le nom de l'arme technologique en forme de boomerang utilisée par le mercenaire Digger Harkness ?", options: ["Captain Boomerang (Boomerang)", "Bolas", "Shuriken sonique", "Disque plasma"], answer: 0 },
+            { q: "Quel crossover majeur réunit pour la première fois les équipes d'Arrow et de The Flash ?", options: ["Flash vs. Arrow", "Invasion!", "Elseworlds", "Crisis on Earth-X"], answer: 0 },
+            { q: "Quel crossover de fin 2017 montre le mariage de Barry et Iris interrompu par des nazis de Terre-X ?", options: ["Crisis on Earth-X", "Invasion!", "Elseworlds", "Crisis on Infinite Earths"], answer: 0 },
+            { q: "Quel crossover de 2018 voit l'échange de corps entre Barry Allen et Oliver Queen (Le Livre du Destin) ?", options: ["Elseworlds", "Invasion!", "Crisis on Earth-X", "Armageddon"], answer: 0 },
+            { q: "Quel est le nom de la base secrète initiale d'Oliver située sous une fabrique abandonnée ?", options: ["The Foundry", "S.T.A.R. Labs", "Le Caveau", "L'Aérodrome"], answer: 0 },
+            { q: "Quel poste politique Oliver occupe-t-il officiellement à partir de la saison 5 de la série ?", options: ["Maire de Star City", "Directeur de l'A.R.G.U.S.", "Député fédéral", "Chef de la police"], answer: 0 },
+
+            // --- SÉRIE THE FLASH ---
+            { q: "Quel est le véritable nom complet de The Flash ?", options: ["Barry Allen", "Wally West", "Bart Allen", "Jay Garrick"], answer: 0 },
+            { q: "Quel est le nom du laboratoire scientifique de pointe où Barry obtient ses pouvoirs ?", options: ["S.T.A.R. Labs", "Mercury Labs", "Wayne Enterprises", "Pahr Labs"], answer: 0 },
+            { q: "Quel physicien et créateur de S.T.A.R. Labs s'avère être Eobard Thawne (Reverse-Flash) ?", options: ["Harrison Wells", "Cisco Ramon", "Ronnie Raymond", "Caitlin Snow"], answer: 0 },
+            { q: "Quel est le nom du speedster venu de Terre-2, principal antagoniste de la saison 2 ?", options: ["Zoom (Hunter Zolomon)", "Savitar", "Godspeed", "The Rival"], answer: 0 },
+            { q: "Comment s'appelle le père biologique de Barry, injustement emprisonné pour le meurtre de sa mère ?", options: ["Henry Allen", "Joe West", "Christian Wells", "Eddie Thawne"], answer: 0 },
+            { q: "Quel nom porte la force mystique et cosmique qui alimente tous les speedsters ?", options: ["La Speed Force", "La Velocity-9", "Le Flux Tachyonique", "L'Énergie Cinétique Pure"], answer: 0 },
+            { q: "Quel est le nom de code super-héroïque de Cisco Ramon grâce à ses ondes sismiques ?", options: ["Vibe", "Echo", "Sonar", "Tremor"], answer: 0 },
+            { q: "Quelle est la double identité criminelle et givrée de Caitlin Snow ?", options: ["Killer Frost", "Ice Maiden", "Glacier", "Cryo-Queen"], answer: 0 },
+            { q: "Quel speedster autoproclamé 'Dieu de la vitesse' et armé d'une lame terrorise Barry dans la saison 3 ?", options: ["Savitar", "Zoom", "Godspeed", "Rival"], answer: 0 },
+            { q: "Quel jeune avocat brillant découvre ses pouvoirs d'élasticité et devient Elongated Man ?", options: ["Ralph Dibny", "Julian Albert", "Wally West", "Hartley Rathaway"], answer: 0 },
+            { q: "Quel est le nom de la prison de haute sécurité pour métahumains située sous S.T.A.R. Labs ?", options: ["The Pipeline", "The Vault", "Cell 9", "The Cage"], answer: 0 },
+            { q: "Quel journaliste et détective de police, fiancé d'Iris, se sacrifie à la fin de la saison 1 ?", options: ["Eddie Thawne", "Julian Albert", "Joe West", "Henry Allen"], answer: 0 },
+            { q: "Quel est le nom de la Terre d'origine de Harry Wells, le père de Jesse Quick ?", options: ["Terre-2", "Terre-3", "Terre-19", "Terre-38"], answer: 0 },
+            { q: "Quel groupe de criminels mené par Leonard Snart et Mick Rory affronte fréquemment Flash ?", options: ["Les Rogues (Les Lascars)", "The Tricksters", "Royal Flush Gang", "The Black Hole"], answer: 0 },
+            { q: "Quel est le nom de code de Leonard Snart lorsqu'il manie son pistolet givrant ?", options: ["Captain Cold", "Icicle", "Frostbite", "Blizzard"], answer: 0 },
+            { q: "Quel scientifique obsédé par le savoir devient le grand méchant manipulateur de la saison 4 ?", options: ["Clifford DeVoe (The Thinker)", "Dr. Light", "Dr. Alchemy", "Amunet Black"], answer: 0 },
+            { q: "Quel est le nom de la fille venue du futur de Barry et Iris, également connue sous le nom de XS ?", options: ["Nora West-Allen", "Bart Allen", "Dawn Allen", "Jenni Ognts"], answer: 0 },
+            { q: "Quel est le nom du tueur en série anti-métahumains armé d'une dague en matière noire dans la saison 5 ?", options: ["Cicada (Orlin Dwyer)", "Godspeed", "Bloodwork", "Red Death"], answer: 0 },
+            { q: "Quel hématologiste brillant se transforme en le monstrueux Bloodwork dans la saison 6 ?", options: ["Dr. Ramsey Rosso", "Julian Albert", "Dr. Light", "Simon Stagg"], answer: 0 },
+            { q: "Quel antagoniste temporel et scientifique crée le paradoxe de Flashpoint ?", options: ["Eobard Thawne (Reverse-Flash)", "Hunter Zolomon", "Malcolm Merlyn", "Savitar"], answer: 0 },
+
+            // --- SÉRIE SUPERGIRL ---
+            { q: "Quel est le véritable nom kryptonien de Supergirl ?", options: ["Kara Zor-El", "Alura In-Ze", "Astra", "Imra Ardeen"], answer: 0 },
+            { q: "Quel est le nom de la ville métropolitaine protégée par Supergirl ?", options: ["National City", "Metropolis", "Midvale", "Gotham City"], answer: 0 },
+            { q: "Comment s'appelle la sœur adoptive de Kara qui dirige les opérations de la D.E.O. ?", options: ["Alex Danvers", "Lena Luthor", "Lucy Lane", "Kelly Olsen"], answer: 0 },
+            { q: "Quel extraterrestre métamorphe martien se cache sous les traits de J'onn J'onzz ?", options: ["Martian Manhunter", "Mon-El", "Brainiac 5", "M'gann M'orzz"], answer: 0 },
+            { q: "Quel membre de la famille de super-vilains Lex Luthor devient la brillante meilleure amie de Kara ?", options: ["Lena Luthor", "Lillian Luthor", "Lionel Luthor", "Luthor Jr."], answer: 0 },
+            { q: "Quel est le nom de code de Nia Nal, capable de voir l'avenir en rêve ?", options: ["Dreamer", "Visionary", "Oracle", "Prophet"], answer: 0 },
+            { q: "Quel super-ordinateur vivant et extraterrestre du 31e siècle intègre la Légion et aide Kara ?", options: ["Brainiac 5 (Querl Dox)", "Brainiac 1", "Calculator", "Gideon"], answer: 0 },
+            { q: "Quel prince extraterrestre arrogant originaire de Daxam devient le compagnon de Kara ?", options: ["Mon-El (Lar Gand)", "Brainiac 5", "J'onn", "H'ronmeer"], answer: 0 },
+            { q: "Quelle est la seule substance organique capable d'affaiblir mortellement les Daxamites ?", options: ["Le plomb", "La Kryptonite", "La magie", "Le cobalt"], answer: 0 },
+            { q: "Quel grand journal de presse emploie Kara Danvers en tant que reporter à National City ?", options: ["CatCo Worldwide Media", "The Daily Planet", "National Tribune", "Starling Herald"], answer: 0 },
+            { q: "Quelle redoutable et exigeante magnate des médias est la première patronne de Kara chez CatCo ?", options: ["Cat Grant", "Lois Lane", "Perry White", "Andrea Rojas"], answer: 0 },
+            { q: "Quel est le nom de l'agence gouvernementale secrète luttant contre la menace extra-terrestre ?", options: ["La D.E.O. (Department of Extranormal Operations)", "A.R.G.U.S.", "S.H.I.E.L.D.", "Cadmus"], answer: 0 },
+            { q: "Quel cousin célèbre de Kara (Superman) vient régulièrement lui prêter main-forte ?", options: ["Clark Kent", "Jon Kent", "Zod", "Jor-El"], answer: 0 },
+            { q: "Quel redoutable génie du mal, ennemi juré de Superman, s'oppose férocement à Kara et Lena ?", options: ["Lex Luthor", "Metallo", "Parasite", "Toyman"], answer: 0 },
+            { q: "Quel est le nom de la scientifique de la D.E.O. incarnée par Chyler Leigh ?", options: ["Alex Danvers", "Kelly Olsen", "Eve Teschmacher", "Lucy Lane"], answer: 0 },
+
+            // --- SÉRIE LEGENDS OF TOMORROW ---
+            { q: "Quel est le nom du célèbre vaisseau temporel piloté par les Légendes ?", options: ["Le Waverider", "Le TARDIS", "Le Javelin", "Le Blackship"], answer: 0 },
+            { q: "Quel immortel égyptien assoiffé de pouvoir est le grand méchant de la toute première saison ?", options: ["Vandal Savage", "Krona", "Chronos", "Mallus"], answer: 0 },
+            { q: "Quel inventeur milliardaire, créateur des technologies ATOM, rejoint l'équipe fondatrice ?", options: ["Ray Palmer", "Curtis Holt", "Martin Stein", "Jax Jackson"], answer: 0 },
+            { q: "Quel criminel pyromane au grand cœur, ancien acolyte de Captain Cold, voyage à bord du Waverider ?", options: ["Mick Rory (Heat Wave)", "Captain Boomerang", "Weather Wizard", "Trickster"], answer: 0 },
+            { q: "Quel physicien nucléaire âgé fusionne avec Jefferson Jackson pour former le héros Firestorm ?", options: ["Dr. Martin Stein", "Dr. Harrison Wells", "Dr. Ivo", "Dr. Palmer"], answer: 0 },
+            { q: "Quel Maître du Temps énigmatique et manipulateur recrute les Légendes pour sauver le futur ?", options: ["Rip Hunter", "Astra Logue", "John Constantine", "Nate Heywood"], answer: 0 },
+            { q: "Quel historien spécialiste des mythes développe le pouvoir de recouvrir son corps d'acier organique ?", options: ["Nate Heywood (Steel)", "Ray Palmer", "Zari Tomaz", "Gary Green"], answer: 0 },
+            { q: "Quel exorciste et magicien cynique de Liverpool rejoint durablement les rangs du Waverider ?", options: ["John Constantine", "Astra Logue", "Nora Darhk", "Charlie"], answer: 0 },
+            { q: "Quel démon temporel chaotique est l'entité cosmique emprisonnée que combat l'équipe dans la saison 3 ?", options: ["Mallus", "Neron", "Fait Accompli", "Trigon"], answer: 0 },
+            { q: "Quel seigneur des enfers bureaucratique s'empare des âmes et manipule les mortels dans la saison 4 ?", options: ["Neron", "Mallus", "Satan", "Lucifer"], answer: 0 },
+            { q: "Quelle ancienne muse et métamorphe rebelle des Furies du Temps s'installe à bord du vaisseau ?", options: ["Charlie (Clotho)", "Mona Wu", "Astra", "Spooner"], answer: 0 },
+            { q: "Quel est le nom de la hackeuse et résistante issue du futur alternatif qui manipule un totem magique du vent ?", options: ["Zari Tomaz", "Behrad", "Spooner Cruz", "Ava Sharpe"], answer: 0 },
+            { q: "Quel est le nom de la directrice clone du Bureau Temporel devenue la compagne de Sara Lance ?", options: ["Ava Sharpe", "Gideon", "Nora Darhk", "Mona"], answer: 0 },
+            { q: "Quel est le nom de l'intelligence artificielle omnisciente et bienveillante intégrée au Waverider ?", options: ["Gideon", "FRIDAY", "SIRI", "Karen"], answer: 0 },
+            { q: "Quelle jeune femme texane persuadée d'avoir été enlevée par des extraterrestres rejoint l'équipe (saison 6) ?", options: ["Spooner Cruz", "Zari", "Mona", "Astra"], answer: 0 }
+        ];
+
+        let currentQuizQuestions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let timerInterval = null;
+        let timeLeft = 90; // 1 min 30
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('quizScreen').classList.remove('hidden');
+            
+            currentQuizQuestions = shuffle(fullQuestionDatabase).slice(0, 20);
+            currentIndex = 0;
+            score = 0;
+            
+            playTone("G4");
+            loadQuestion();
+        }
+
+        function resetGame() {
+            clearInterval(timerInterval);
+            document.getElementById('quizScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            playTone("C4");
+        }
+
+        function loadQuestion() {
+            clearInterval(timerInterval);
+            timeLeft = 90;
+            updateTimerDisplay();
+
+            const qData = currentQuizQuestions[currentIndex];
+            document.getElementById('questionCounter').innerText = `QUESTION ${currentIndex + 1} / 20`;
+            document.getElementById('questionText').innerText = qData.q;
+
+            const container = document.getElementById('answersContainer');
+            container.innerHTML = '';
+
+            let optionsWithIndex = qData.options.map((opt, idx) => ({ text: opt, isCorrect: idx === qData.answer }));
+            optionsWithIndex = shuffle(optionsWithIndex);
+
+            optionsWithIndex.forEach((item, index) => {
+                const btn = document.createElement('button');
+                btn.className = "answer-btn p-4 rounded-lg font-bold text-sm md:text-base flex items-center justify-between";
+                btn.innerHTML = `<span><strong class="text-[#00ff66] mr-2">Réponse ${index + 1} :</strong> ${item.text}</span> <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>`;
+                btn.onclick = () => selectAnswer(item.isCorrect, btn, optionsWithIndex);
+                container.appendChild(btn);
+            });
+
+            document.getElementById('nextBtn').classList.add('hidden');
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timeOutQuestion(optionsWithIndex);
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const secs = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('timerDisplay').innerText = `${mins}:${secs}`;
+        }
+
+        function selectAnswer(isCorrect, clickedBtn, optionsArr) {
+            clearInterval(timerInterval);
+            const buttons = document.getElementById('answersContainer').children;
+            
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (optionsArr[i].isCorrect) {
+                    buttons[i].classList.add('correct');
+                } else if (buttons[i] === clickedBtn && !isCorrect) {
+                    buttons[i].classList.add('incorrect');
+                }
+            }
+
+            if (isCorrect) {
+                score++;
+                playTone("E5");
+            } else {
+                playTone("C3");
+            }
+
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        function timeOutQuestion(optionsArr) {
+            const buttons = document.getElementById('answersContainer').children;
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (optionsArr[i].isCorrect) {
+                    buttons[i].classList.add('correct');
+                }
+            }
+            playTone("C3");
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < currentQuizQuestions.length) {
+                loadQuestion();
+            } else {
+                showEndScreen();
+            }
+        }
+
+        function showEndScreen() {
+            document.getElementById('quizScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+            document.getElementById('finalScoreText').innerText = `Score final : ${score} / 20`;
+            playTone("A5");
+        }
+    </script>
+</body>
+</html>
